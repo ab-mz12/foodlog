@@ -19,14 +19,13 @@
     padding:env(safe-area-inset-top) 12px calc(env(safe-area-inset-bottom) + 90px);}
   h1{font-size:20px;margin:14px 4px 2px;}
   .sub{color:var(--muted);font-size:12px;margin:0 4px 14px;}
-  .date-row{display:flex;align-items:center;gap:8px;margin:0 4px 14px;}
+  .date-row{display:flex;align-items:center;gap:6px;margin:0 4px 14px;flex-wrap:wrap;}
   .date-row input{background:var(--card);border:1px solid var(--line);color:var(--txt);
     border-radius:10px;padding:8px 10px;font-size:14px;font-family:inherit;}
   .btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);
     border-radius:10px;padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;}
   .btn:active{transform:scale(.97);}
   .btn.danger{color:#ff6b6b;}
-  /* Targets summary */
   .targets{background:linear-gradient(135deg,#1a1a24,#14141c);border:1px solid var(--line);
     border-radius:16px;padding:14px;margin-bottom:14px;}
   .tline{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
@@ -41,7 +40,6 @@
   .macro .t{font-size:10px;color:var(--muted);}
   .mbar{height:5px;background:#2a2a36;border-radius:99px;overflow:hidden;margin-top:5px;}
   .mbar>i{display:block;height:100%;}
-  /* Meals */
   .meal{background:var(--card);border:1px solid var(--line);border-radius:16px;
     margin-bottom:12px;overflow:hidden;}
   .meal-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;}
@@ -56,7 +54,6 @@
   .item .x{color:#ff6b6b;background:none;border:none;font-size:18px;cursor:pointer;padding:0 4px;}
   .add{width:100%;margin-top:10px;background:var(--card2);border:1px dashed var(--line);
     color:var(--accent);border-radius:10px;padding:10px;font-size:13px;cursor:pointer;font-family:inherit;}
-  /* Modal */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:50;
     align-items:flex-end;justify-content:center;}
   .modal.on{display:flex;}
@@ -79,7 +76,6 @@
   .frow .fn{font-size:14px;}
   .frow .fn small{display:block;color:var(--muted);font-size:11px;}
   .frow .fk{color:var(--accent);font-size:12px;white-space:nowrap;}
-  /* qty entry */
   .qty{padding:16px 14px;border-top:1px solid var(--line);background:var(--card2);}
   .qty .picked{font-size:14px;margin-bottom:10px;}
   .qty .picked small{color:var(--muted);}
@@ -102,12 +98,17 @@
   <p class="sub">Daily Food Log — اضغط وجبة وأضف ما أكلته، والحساب تلقائي</p>
 
   <div class="date-row">
+    <button class="btn" id="prevDay">‹</button>
     <input type="date" id="dateSel">
+    <button class="btn" id="nextDay">›</button>
+    <button class="btn" id="yesterdayBtn">أمس</button>
     <button class="btn" id="todayBtn">اليوم</button>
+    <button class="btn" id="tomorrowBtn">بكرا</button>
+    <button class="btn" id="copyDayBtn">📋 نسخ اليوم</button>
+    <button class="btn" id="pasteDayBtn" style="display:none;">📥 لصق</button>
     <button class="btn danger" id="clearDay">مسح اليوم</button>
   </div>
 
-  <!-- Daily summary vs targets -->
   <div class="targets">
     <div class="tline">
       <div><span class="big" id="calNow">0</span> <span class="lab">/ <span id="calTgt">2272</span> سعرة</span></div>
@@ -144,7 +145,6 @@
     لإضافته كتطبيق على الآيفون: شارك ⬆️ ← «إضافة إلى الشاشة الرئيسية»
   </p>
 
-  <!-- Modal -->
   <div class="modal" id="modal">
     <div class="sheet">
       <div class="sheet-h">
@@ -168,8 +168,6 @@
   </div>
 
 <script>
-/* ---------- FOOD DATABASE (from your Nutritional Table sheet) ---------- */
-/* ingredients: macros are PER 1 unit (per gram unless unit says حبة=piece). */
 const INGREDIENTS = [
 {cat:"بروتين",name:"بيض",unit:"حبة",protein:5.625,carb:0.45,fat:4.5,cal:64.8},
 {cat:"بروتين",name:"بياض البيض",unit:"g",protein:0.11,carb:0.01,fat:0,cal:0.5},
@@ -191,11 +189,11 @@ const INGREDIENTS = [
 {cat:"كارب",name:"مكرونة مطبوخة",unit:"g",protein:0.05,carb:0.26,fat:0.01,cal:1.33},
 {cat:"كارب",name:"توست نخالة",unit:"حبة",protein:2.4,carb:13.8,fat:0.9,cal:72.9},
 {cat:"كارب",name:"كورن فليكس",unit:"g",protein:0.07,carb:0.84,fat:0.01,cal:3.73},
-{cat:"كارب",name:"فواكه (موز، تفاح، برتقال)",unit:"g",protein:0.005,carb:0.15,fat:0.002,cal:0.64},
+{cat:"فواكه",name:"فواكه (موز، تفاح، برتقال)",unit:"g",protein:0.005,carb:0.15,fat:0.002,cal:0.64},
 {cat:"كارب",name:"فشار بدون زيت",unit:"g",protein:0.1,carb:0.64,fat:0.03,cal:3.23},
 {cat:"كارب",name:"سيريلاك القمح",unit:"g",protein:0.07,carb:0.78,fat:0.02,cal:3.58},
-{cat:"كارب",name:"تمر",unit:"g",protein:0.02,carb:0.75,fat:0.01,cal:3.2},
-{cat:"كارب",name:"خضراوات",unit:"g",protein:0.014,carb:0.051,fat:0.002,cal:0.28},
+{cat:"فواكه",name:"تمر",unit:"g",protein:0.02,carb:0.75,fat:0.01,cal:3.2},
+{cat:"خضار",name:"خضراوات",unit:"g",protein:0.014,carb:0.051,fat:0.002,cal:0.28},
 {cat:"كارب",name:"تورتيلا",unit:"g",protein:0.08,carb:0.49,fat:0.09,cal:3.09},
 {cat:"كارب",name:"صوص",unit:"g",protein:0.05,carb:0.15,fat:0.2,cal:2.6},
 {cat:"كارب",name:"دارك تشوكلت",unit:"g",protein:0.06,carb:0.06,fat:0.32,cal:3.36},
@@ -217,8 +215,6 @@ const INGREDIENTS = [
 {cat:"دهون",name:"جبنة فيتا",unit:"g",protein:0.19,carb:0.05,fat:0.19,cal:2.67},
 {cat:"دهون",name:"حليب اللوز",unit:"g",protein:0.004,carb:0.006,fat:0.012,cal:0.148}
 ];
-
-/* restaurant meals: macros are for the WHOLE item (qty = 1 serving) */
 const MEALS = [
 {brand:"برجرايزر",item:"كلاسيك برجر لحم دبل",cal:844,protein:55,carb:47,fat:52},
 {brand:"برجرايزر",item:"صوص",cal:95,protein:9,carb:6,fat:0},
@@ -262,27 +258,19 @@ const MEALS = [
 {brand:"ماكدونالدز",item:"تشيكن ماك ناجتس",cal:169,protein:12,carb:9,fat:10},
 {brand:"ماكدونالدز",item:"ماك مافن بالبيض",cal:288,protein:28,carb:12,fat:17}
 ];
-
-/* Targets from your sheet */
 const TARGET = {cal:2272, protein:118.8, carb:317, fat:58.7};
-
-/* ---------- STATE ---------- */
 const MEAL_NAMES = ["وجبة 1 · Meal 1","وجبة 2 · Meal 2","وجبة 3 · Meal 3","سناك · Snack","سناك 2 · Snack 2"];
 let store = load();
 let curDate = todayStr();
-let pickTarget = null; // meal index being edited
-let picked = null;     // food currently selected in modal
+let pickTarget = null;
+let picked = null;
 let openMeals = {};
-
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
 function load(){try{return JSON.parse(localStorage.getItem("foodlog")||"{}");}catch(e){return {};}}
 function save(){localStorage.setItem("foodlog",JSON.stringify(store));}
 function dayData(){ if(!store[curDate]) store[curDate]=MEAL_NAMES.map(()=>[]);
-  // ensure 5 meals
   while(store[curDate].length<MEAL_NAMES.length) store[curDate].push([]);
   return store[curDate];}
-
-/* ---------- RENDER ---------- */
 function r1(n){return Math.round(n);}
 function render(){
   const day = dayData();
@@ -311,8 +299,6 @@ function render(){
       </div>`;
     mealsDiv.appendChild(card);
   });
-
-  // summary
   set("calNow",r1(tot.cal)); set("pNow",r1(tot.protein));
   set("cNow",r1(tot.carb)); set("fNow",r1(tot.fat));
   const left = TARGET.cal - tot.cal;
@@ -322,8 +308,6 @@ function render(){
   bar("pBar",tot.protein,TARGET.protein);
   bar("cBar",tot.carb,TARGET.carb);
   bar("fBar",tot.fat,TARGET.fat);
-
-  // bind
   document.querySelectorAll(".meal-h").forEach(h=>h.onclick=()=>{
     const mi=+h.dataset.mi; openMeals[mi]=!(openMeals[mi] ?? (day[mi].length>0)); render();});
   document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openModal(+b.dataset.add));
@@ -339,8 +323,6 @@ function bar(id,now,tgt){
   el.style.width=pct+"%";
   el.style.background = now>tgt*1.05 ? "var(--over)" : el.style.background;
 }
-
-/* ---------- MODAL ---------- */
 let activeCat = "all";
 function openModal(mi){
   pickTarget=mi; picked=null;
@@ -352,12 +334,13 @@ function openModal(mi){
   document.getElementById("modal").classList.add("on");
 }
 function closeModal(){document.getElementById("modal").classList.remove("on");}
-
 const CATS=[
   {k:"all",l:"الكل"},
   {k:"بروتين",l:"بروتين"},
   {k:"كارب",l:"كارب"},
   {k:"دهون",l:"دهون"},
+  {k:"فواكه",l:"فواكه 🍎"},
+  {k:"خضار",l:"خضار 🥦"},
   {k:"مطاعم",l:"مطاعم 🍔"}
 ];
 function buildTabs(){
@@ -392,7 +375,6 @@ function renderFoodList(){
   });
   if(rows.length===0) list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">لا نتائج · No results</div>';
 }
-
 function selectFood(r){
   picked=r;
   const pane=document.getElementById("qtyPane");pane.style.display="block";
@@ -418,7 +400,6 @@ function selectFood(r){
   pane.scrollIntoView({behavior:"smooth",block:"end"});
 }
 function calc(r,qty){
-  if(r.type==="meal"){return {cal:r.cal*qty,protein:r.protein*qty,carb:r.carb*qty,fat:r.fat*qty};}
   return {cal:r.cal*qty,protein:r.protein*qty,carb:r.carb*qty,fat:r.fat*qty};
 }
 function updatePreview(){
@@ -438,25 +419,61 @@ function saveItem(){
   openMeals[pickTarget]=true;
   save();closeModal();render();
 }
-
-/* ---------- EVENTS ---------- */
 document.getElementById("closeModal").onclick=closeModal;
 document.getElementById("modal").onclick=(e)=>{if(e.target.id==="modal")closeModal();};
 document.getElementById("searchBox").oninput=renderFoodList;
 document.getElementById("saveItem").onclick=saveItem;
-document.getElementById("dateSel").onchange=(e)=>{curDate=e.target.value;openMeals={};render();};
-document.getElementById("todayBtn").onclick=()=>{curDate=todayStr();document.getElementById("dateSel").value=curDate;openMeals={};render();};
+function addDays(dateStr,n){const [y,m,d]=dateStr.split("-").map(Number);const dt=new Date(y,m-1,d+n);
+  const yy=dt.getFullYear();const mm=String(dt.getMonth()+1).padStart(2,"0");const dd=String(dt.getDate()).padStart(2,"0");
+  return `${yy}-${mm}-${dd}`;}
+function goToDate(d){curDate=d;document.getElementById("dateSel").value=curDate;openMeals={};render();}
+function shiftDay(n){goToDate(addDays(curDate,n));}
+document.getElementById("dateSel").onchange=(e)=>{if(e.target.value)goToDate(e.target.value);};
+document.getElementById("todayBtn").onclick=()=>goToDate(todayStr());
+document.getElementById("yesterdayBtn").onclick=()=>goToDate(addDays(todayStr(),-1));
+document.getElementById("tomorrowBtn").onclick=()=>goToDate(addDays(todayStr(),1));
+document.getElementById("prevDay").onclick=()=>shiftDay(-1);
+document.getElementById("nextDay").onclick=()=>shiftDay(1);
+let clipboardDay=null;
+function countItems(dateStr){
+  const data=store[dateStr];if(!data)return 0;
+  return data.reduce((n,meal)=>n+meal.length,0);
+}
+function deepCopyMeals(meals){return meals.map(meal=>meal.map(it=>({...it})));}
+function copyCurrentDay(){
+  const n=countItems(curDate);
+  if(n===0){alert("هذا اليوم مافيه أكل تنسخه.");return;}
+  clipboardDay={date:curDate, meals:deepCopyMeals(dayData())};
+  updateCopyUI();
+  alert(`تم نسخ أكل يوم ${curDate} (${n} صنف). روح لليوم اللي تبي وألصقه.`);
+}
+function pasteIntoCurrentDay(){
+  if(!clipboardDay){alert("ماعندك شي منسوخ. اضغط «نسخ» على يوم أول.");return;}
+  const target=dayData();
+  clipboardDay.meals.forEach((meal,mi)=>{
+    if(!target[mi]) target[mi]=[];
+    meal.forEach(item=>target[mi].push({...item}));
+  });
+  save();openMeals={};render();
+  alert(`تم لصق أكل يوم ${clipboardDay.date} في يوم ${curDate}.`);
+}
+function updateCopyUI(){
+  const pasteBtn=document.getElementById("pasteDayBtn");
+  if(clipboardDay){pasteBtn.style.display="";pasteBtn.textContent=`📥 لصق (${clipboardDay.date})`;}
+  else{pasteBtn.style.display="none";}
+}
+document.getElementById("copyDayBtn").onclick=copyCurrentDay;
+document.getElementById("pasteDayBtn").onclick=pasteIntoCurrentDay;
 document.getElementById("clearDay").onclick=()=>{
   if(confirm("مسح كل أصناف هذا اليوم؟ Clear all foods for this day?")){
     store[curDate]=MEAL_NAMES.map(()=>[]);save();render();}
 };
-
-/* targets to UI */
 document.getElementById("calTgt").textContent=TARGET.cal;
 document.getElementById("pTgt").textContent=Math.round(TARGET.protein);
 document.getElementById("cTgt").textContent=TARGET.carb;
 document.getElementById("fTgt").textContent=Math.round(TARGET.fat);
 document.getElementById("dateSel").value=curDate;
+updateCopyUI();
 render();
 </script>
 </body>
