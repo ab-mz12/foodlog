@@ -90,6 +90,18 @@
   .quick{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
   .quick button{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--muted);
     border-radius:8px;padding:7px;font-size:12px;cursor:pointer;font-family:inherit;}
+  /* Supplements */
+  .supps{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px;}
+  .supps-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+  .supp{display:flex;align-items:flex-start;gap:12px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer;}
+  .supp:first-of-type{border-top:none;}
+  .supp .box{flex-shrink:0;width:26px;height:26px;border-radius:8px;border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:16px;color:#111;background:transparent;margin-top:1px;}
+  .supp.done .box{background:var(--accent);border-color:var(--accent);}
+  .supp .info{flex:1;min-width:0;}
+  .supp .nm{font-size:14px;font-weight:600;}
+  .supp.done .nm{text-decoration:line-through;color:var(--muted);}
+  .supp .dose{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5;}
   .footer-note{color:var(--muted);font-size:11px;text-align:center;margin-top:18px;line-height:1.6;}
 </style>
 </head>
@@ -138,6 +150,12 @@
   </div>
 
   <div id="meals"></div>
+
+  <!-- Supplements -->
+  <div class="supps">
+    <div class="supps-title">💊 المكملات · Supplements</div>
+    <div id="suppsList"></div>
+  </div>
 
   <p class="footer-note">
     بياناتك تُحفظ تلقائياً على هذا الجهاز/المتصفح.<br>
@@ -292,7 +310,7 @@ function render(){
     card.innerHTML=`
       <div class="meal-h" data-mi="${mi}">
         <div class="name">${MEAL_NAMES[mi]}</div>
-        <div class="sum">${r1(ms.cal)} سعرة · ${items.length} صنف ${open?'▾':'▸'}</div>
+        <div class="sum">${r1(ms.cal)} سعرة · ب${r1(ms.protein)} ك${r1(ms.carb)} د${r1(ms.fat)} · ${items.length} صنف ${open?'▾':'▸'}</div>
       </div>
       <div class="meal-body" style="display:${open?'block':'none'}">
         ${items.map((it,ii)=>`
@@ -432,7 +450,7 @@ document.getElementById("saveItem").onclick=saveItem;
 function addDays(dateStr,n){const [y,m,d]=dateStr.split("-").map(Number);const dt=new Date(y,m-1,d+n);
   const yy=dt.getFullYear();const mm=String(dt.getMonth()+1).padStart(2,"0");const dd=String(dt.getDate()).padStart(2,"0");
   return `${yy}-${mm}-${dd}`;}
-function goToDate(d){curDate=d;document.getElementById("dateSel").value=curDate;openMeals={};render();}
+function goToDate(d){curDate=d;document.getElementById("dateSel").value=curDate;openMeals={};render();renderSupps();}
 function shiftDay(n){goToDate(addDays(curDate,n));}
 document.getElementById("dateSel").onchange=(e)=>{if(e.target.value)goToDate(e.target.value);};
 document.getElementById("todayBtn").onclick=()=>goToDate(todayStr());
@@ -474,6 +492,32 @@ document.getElementById("clearDay").onclick=()=>{
   if(confirm("مسح كل أصناف هذا اليوم؟ Clear all foods for this day?")){
     store[curDate]=MEAL_NAMES.map(()=>[]);save();render();}
 };
+/* ---------- SUPPLEMENTS (daily checklist, saved per-day, separate from food) ---------- */
+const SUPPLEMENTS = [
+  {id:"omega3", name:"الأوميقا 3 · Omega 3", dose:"حبتين مع وجبة بعد التمرين"},
+  {id:"mag",    name:"المغنيسيوم غلايسينيت · Magnesium Glycinate", dose:"حبتين قبل النوم بنص ساعة–ساعة"},
+  {id:"vitd",   name:"فيتامين د · Vitamin D", dose:"حبة وحدة باليوم مع وجبة فيها دهون"},
+  {id:"zinc",   name:"الزنك · Zinc", dose:"حبة كل يومين بأي وقت، يفضّل مع المغنيسيوم قبل النوم"},
+  {id:"creatine", name:"الكرياتين · Creatine", dose:"سكوب 5 جرام كل يوم بأي وقت"}
+];
+function loadSupp(){try{return JSON.parse(localStorage.getItem("supplog")||"{}");}catch(e){return {};}}
+function saveSupp(){localStorage.setItem("supplog",JSON.stringify(suppStore));}
+let suppStore = loadSupp();
+function suppDay(){ if(!suppStore[curDate]) suppStore[curDate]={}; return suppStore[curDate]; }
+function renderSupps(){
+  const day = suppDay();
+  const list = document.getElementById("suppsList");
+  list.innerHTML = "";
+  SUPPLEMENTS.forEach(s=>{
+    const done = !!day[s.id];
+    const row = document.createElement("div");
+    row.className = "supp"+(done?" done":"");
+    row.innerHTML = `<div class="box">${done?"✓":""}</div>
+      <div class="info"><div class="nm">${s.name}</div><div class="dose">${s.dose}</div></div>`;
+    row.onclick = ()=>{ const d=suppDay(); d[s.id]=!d[s.id]; saveSupp(); renderSupps(); };
+    list.appendChild(row);
+  });
+}
 document.getElementById("calTgt").textContent=TARGET.cal;
 document.getElementById("pTgt").textContent=Math.round(TARGET.protein);
 document.getElementById("cTgt").textContent=TARGET.carb;
@@ -481,6 +525,7 @@ document.getElementById("fTgt").textContent=Math.round(TARGET.fat);
 document.getElementById("dateSel").value=curDate;
 updateCopyUI();
 render();
+renderSupps();
 </script>
 </body>
 </html>
