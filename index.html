@@ -533,9 +533,22 @@ let pickTarget = null;
 let picked = null;
 let openMeals = {};
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
-/* One-time migration: copy old shared "foodlog" into the unique key once, so history is
-   kept AND it never mixes with sibling apps on the same domain. */
-(function(){try{if(!localStorage.getItem("foodlog_abdullah")){const o=localStorage.getItem("foodlog");if(o&&o!=="{}")localStorage.setItem("foodlog_abdullah",o);}}catch(e){}})();
+/* Recovery + migration: pull any days from the old shared "foodlog" key into the unique
+   key. MERGE only — never overwrites a day that already has food in the new key. Restores
+   data lost if an earlier empty save blocked the first migration. */
+(function(){try{
+  const oldRaw=localStorage.getItem("foodlog");
+  if(oldRaw&&oldRaw!=="{}"){
+    const oldD=JSON.parse(oldRaw);
+    let newD={};try{newD=JSON.parse(localStorage.getItem("foodlog_abdullah")||"{}");}catch(e){}
+    let changed=false;
+    for(const day in oldD){
+      const hasNew=newD[day]&&newD[day].some(m=>m&&m.length);
+      if(!hasNew){ newD[day]=oldD[day]; changed=true; }
+    }
+    if(changed) localStorage.setItem("foodlog_abdullah",JSON.stringify(newD));
+  }
+}catch(e){}})();
 function load(){try{return JSON.parse(localStorage.getItem("foodlog_abdullah")||"{}");}catch(e){return {};}}
 function save(){localStorage.setItem("foodlog_abdullah",JSON.stringify(store));}
 function dayData(){ if(!store[curDate]) store[curDate]=MEAL_NAMES.map(()=>[]);
@@ -747,7 +760,16 @@ const SUPPLEMENTS = [
   {id:"zinc",   name:"Zinc · الزنك", dose:"1 every 2 days, anytime (prefer with magnesium before bed)"},
   {id:"creatine", name:"Creatine · الكرياتين", dose:"1 scoop 5g every day, anytime"}
 ];
-(function(){try{if(!localStorage.getItem("supplog_abdullah")){const o=localStorage.getItem("supplog");if(o&&o!=="{}")localStorage.setItem("supplog_abdullah",o);}}catch(e){}})();
+(function(){try{
+  const oldRaw=localStorage.getItem("supplog");
+  if(oldRaw&&oldRaw!=="{}"){
+    const oldD=JSON.parse(oldRaw);
+    let newD={};try{newD=JSON.parse(localStorage.getItem("supplog_abdullah")||"{}");}catch(e){}
+    let changed=false;
+    for(const day in oldD){ if(!newD[day]||!Object.keys(newD[day]).length){ newD[day]=oldD[day]; changed=true; } }
+    if(changed) localStorage.setItem("supplog_abdullah",JSON.stringify(newD));
+  }
+}catch(e){}})();
 function loadSupp(){try{return JSON.parse(localStorage.getItem("supplog_abdullah")||"{}");}catch(e){return {};}}
 function saveSupp(){localStorage.setItem("supplog_abdullah",JSON.stringify(suppStore));}
 let suppStore = loadSupp();
