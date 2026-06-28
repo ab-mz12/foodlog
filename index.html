@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0b0f">
-<title>سجل الأكل اليومي | Daily Food Log</title>
+<title>Abdullah's Daily Food Log</title>
 <style>
   :root{
     --bg:#0b0b0f; --card:#16161d; --card2:#1e1e28; --line:#2a2a36;
@@ -90,6 +90,7 @@
   .quick{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
   .quick button{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--muted);
     border-radius:8px;padding:7px;font-size:12px;cursor:pointer;font-family:inherit;}
+  .footer-note{color:var(--muted);font-size:11px;text-align:center;margin-top:18px;line-height:1.6;}
   /* Supplements */
   .supps{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px;}
   .supps-title{font-size:15px;font-weight:600;margin-bottom:6px;}
@@ -102,47 +103,91 @@
   .supp .nm{font-size:14px;font-weight:600;}
   .supp.done .nm{text-decoration:line-through;color:var(--muted);}
   .supp .dose{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5;}
-  .footer-note{color:var(--muted);font-size:11px;text-align:center;margin-top:18px;line-height:1.6;}
+  /* View tabs */
+  .viewtabs{display:flex;gap:8px;margin:4px 4px 14px;}
+  .viewtab{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--muted);
+    border-radius:12px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+  .viewtab.on{background:var(--accent);color:#111;border-color:var(--accent);}
+  /* Plan view */
+  .plan-intro{color:var(--muted);font-size:12px;margin:0 4px 14px;line-height:1.6;}
+  .planpick{display:flex;gap:8px;overflow-x:auto;margin:0 4px 14px;-webkit-overflow-scrolling:touch;}
+  .planbtn{white-space:nowrap;background:var(--card2);border:1px solid var(--line);color:var(--muted);
+    border-radius:99px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0;}
+  .planbtn.on{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+  .plandesc{color:var(--accent2);font-size:12px;margin:0 4px 14px;line-height:1.6;}
+  .pmeal{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden;}
+  .pmeal-h{padding:11px 14px;background:linear-gradient(135deg,#1a1a24,#14141c);border-bottom:1px solid var(--line);}
+  .pmeal-h .name{font-size:15px;font-weight:600;}
+  .pmeal-h .mac{font-size:11px;color:var(--muted);margin-top:3px;}
+  .ptbl{width:100%;}
+  .ptbl-head{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border-bottom:1px solid var(--line);}
+  .ptbl-head div{padding:8px 10px;font-size:11px;font-weight:700;color:var(--muted);}
+  .ptbl-head div:first-child{border-inline-end:1px solid var(--line);}
+  .prow{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);}
+  .prow:first-of-type{border-top:none;}
+  .pcell{padding:10px;min-width:0;}
+  .pcell.left{border-inline-end:1px solid var(--line);}
+  .pcell .fn{font-size:13px;font-weight:600;}
+  .pcell .fn small{display:block;color:var(--muted);font-size:10.5px;font-weight:400;margin-top:2px;}
+  .pcell .kc{color:var(--accent);font-size:11px;font-weight:600;margin-top:3px;}
+  .pcell select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:7px;font-size:12.5px;font-family:inherit;margin-bottom:6px;}
+  .pcell .altinfo{font-size:10.5px;color:var(--muted);line-height:1.5;}
+  .pcell .altinfo .ac{color:var(--accent);font-weight:600;}
+  .plan-foot{background:linear-gradient(135deg,#1a1a24,#14141c);border:1px solid var(--line);
+    border-radius:16px;padding:14px;margin-bottom:14px;text-align:center;}
+  .plan-foot .big{font-size:22px;font-weight:700;color:var(--accent);}
+  .plan-foot .lab{font-size:12px;color:var(--muted);margin-top:4px;}
+  .addbtn{margin-top:6px;background:var(--accent);color:#111;border:none;border-radius:8px;
+    padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .addbtn:active{transform:scale(.96);}
+  .addbtn.flash{background:var(--ok);color:#fff;}
 </style>
 </head>
 <body>
-  <h1>سجل الأكل اليومي 🍽️</h1>
-  <p class="sub">Daily Food Log — اضغط وجبة وأضف ما أكلته، والحساب تلقائي</p>
+  <h1>Abdullah's Daily Food Log 🍽️</h1>
+  <p class="sub">Tap a meal and add what you ate — totals are automatic.</p>
+
+  <div class="viewtabs">
+    <button class="viewtab on" id="tabLog">📝 Log</button>
+    <button class="viewtab" id="tabPlan">🍽️ Plan</button>
+  </div>
 
   <div class="date-row">
     <button class="btn" id="prevDay">‹</button>
     <input type="date" id="dateSel">
     <button class="btn" id="nextDay">›</button>
-    <button class="btn" id="yesterdayBtn">أمس</button>
-    <button class="btn" id="todayBtn">اليوم</button>
-    <button class="btn" id="tomorrowBtn">بكرا</button>
-    <button class="btn" id="copyDayBtn">📋 نسخ اليوم</button>
-    <button class="btn" id="pasteDayBtn" style="display:none;">📥 لصق</button>
-    <button class="btn danger" id="clearDay">مسح اليوم</button>
+    <button class="btn" id="yesterdayBtn">Yesterday</button>
+    <button class="btn" id="todayBtn">Today</button>
+    <button class="btn" id="tomorrowBtn">Tomorrow</button>
+    <button class="btn" id="copyDayBtn">📋 Copy day</button>
+    <button class="btn" id="pasteDayBtn" style="display:none;">📥 Paste</button>
+    <button class="btn danger" id="clearDay">Clear day</button>
   </div>
 
+  <div id="logView">
   <div class="targets">
     <div class="tline">
-      <div><span class="big" id="calNow">0</span> <span class="lab">/ <span id="calTgt">2272</span> سعرة</span></div>
+      <div><span class="big" id="calNow">0</span> <span class="lab">/ <span id="calTgt">2272</span> kcal</span></div>
       <div class="lab" id="calLeft"></div>
     </div>
     <div class="bar"><i id="calBar" style="width:0;background:var(--cal)"></i></div>
     <div class="macros">
       <div class="macro">
         <div class="v" style="color:var(--p)"><span id="pNow">0</span></div>
-        <div class="l">بروتين Protein</div>
+        <div class="l">Protein</div>
         <div class="t">/ <span id="pTgt">119</span> g</div>
         <div class="mbar"><i id="pBar" style="width:0;background:var(--p)"></i></div>
       </div>
       <div class="macro">
         <div class="v" style="color:var(--c)"><span id="cNow">0</span></div>
-        <div class="l">كارب Carb</div>
+        <div class="l">Carb</div>
         <div class="t">/ <span id="cTgt">317</span> g</div>
         <div class="mbar"><i id="cBar" style="width:0;background:var(--c)"></i></div>
       </div>
       <div class="macro">
         <div class="v" style="color:var(--f)"><span id="fNow">0</span></div>
-        <div class="l">دهون Fat</div>
+        <div class="l">Fat</div>
         <div class="t">/ <span id="fTgt">59</span> g</div>
         <div class="mbar"><i id="fBar" style="width:0;background:var(--f)"></i></div>
       </div>
@@ -153,23 +198,33 @@
 
   <!-- Supplements -->
   <div class="supps">
-    <div class="supps-title">💊 المكملات · Supplements</div>
+    <div class="supps-title">💊 Supplements · المكملات</div>
     <div id="suppsList"></div>
+  </div>
+  </div><!-- /logView -->
+
+  <div id="planView" style="display:none;">
+    <p class="plan-intro">Pick a plan below. Left column = the fixed plan. Right column = swaps with about the same key macro — pick one if you want a change.<br>
+    Main meals also have an "If eating out" option, and there's a full restaurant guide at the bottom.<br>
+    <span style="color:var(--accent2)">This tab is for reading — once you decide, tap ＋ Add to log it.</span></p>
+    <div class="planpick" id="planPick"></div>
+    <div class="plandesc" id="planDesc"></div>
+    <div id="planMeals"></div>
+    <div id="eatingOut"></div>
   </div>
 
   <p class="footer-note">
-    بياناتك تُحفظ تلقائياً على هذا الجهاز/المتصفح.<br>
-    Your log saves automatically on this device.<br>
-    لإضافته كتطبيق على الآيفون: شارك ⬆️ ← «إضافة إلى الشاشة الرئيسية»
+    Your log saves automatically on this device/browser.<br>
+    To add it as an app on iPhone: Share ⬆️ → "Add to Home Screen".
   </p>
 
   <div class="modal" id="modal">
     <div class="sheet">
       <div class="sheet-h">
-        <h3 id="sheetTitle">اختر طعام</h3>
-        <button class="btn" id="closeModal">إغلاق ✕</button>
+        <h3 id="sheetTitle">Choose a food</h3>
+        <button class="btn" id="closeModal">Close ✕</button>
       </div>
-      <div class="search"><input type="text" id="searchBox" placeholder="ابحث عن صنف… Search food"></div>
+      <div class="search"><input type="text" id="searchBox" placeholder="Search food…"></div>
       <div class="tabs" id="catTabs"></div>
       <div class="list" id="foodList"></div>
       <div class="qty" id="qtyPane" style="display:none;">
@@ -180,12 +235,14 @@
         </div>
         <div class="quick" id="quickBtns"></div>
         <div class="qprev" id="qtyPreview"></div>
-        <button class="save" id="saveItem">إضافة للوجبة ✓</button>
+        <button class="save" id="saveItem">Add to meal ✓</button>
       </div>
     </div>
   </div>
 
 <script>
+/* Abdullah's app — uses UNIQUE keys "foodlog_abdullah" and "supplog_abdullah" so it never
+   mixes with sibling apps on the same domain. Migrates old "foodlog"/"supplog" data once. */
 const INGREDIENTS = [
 {cat:"بروتين",name:"بيض",unit:"حبة",protein:5.625,carb:0.45,fat:4.5,cal:64.8},
 {cat:"بروتين",name:"بياض البيض",unit:"g",protein:0.11,carb:0.01,fat:0,cal:0.5},
@@ -240,58 +297,247 @@ const INGREDIENTS = [
 {cat:"دهون",name:"حليب اللوز",unit:"g",protein:0.004,carb:0.006,fat:0.012,cal:0.148}
 ];
 const MEALS = [
-{brand:"برجرايزر",item:"كلاسيك برجر لحم دبل",cal:844,protein:55,carb:47,fat:52},
-{brand:"برجرايزر",item:"صوص",cal:95,protein:9,carb:6,fat:0},
-{brand:"برجرايزر",item:"شريحة جبن اضافية",cal:48,protein:1,carb:4,fat:2},
-{brand:"برجرايزر",item:"بطاطس مقلية - كبير",cal:479,protein:54,carb:24,fat:7},
-{brand:"هارديز",item:"ساندوتش مشروم اند سويس",cal:680,protein:53,carb:38,fat:36},
-{brand:"هارديز",item:"ساندوتش دجاج فيليه",cal:710,protein:64,carb:36,fat:35},
-{brand:"هارديز",item:"ساندوتش سنتافي حار",cal:655,protein:53,carb:35,fat:32},
-{brand:"هارديز",item:"بطاطس حجم وسط",cal:490,protein:63,carb:24,fat:5},
-{brand:"ليتل سيزرز",item:"بيتزا خضار",cal:270,protein:33,carb:10,fat:13},
-{brand:"ليتل سيزرز",item:"بيتزا دجاج سوبريم",cal:310,protein:33,carb:15,fat:14},
-{brand:"ليتل سيزرز",item:"الفريدو الدجاج",cal:1450,protein:154,carb:61,fat:67},
-{brand:"ليتل سيزرز",item:"بيتزا بيبيروني",cal:330,protein:28,carb:18,fat:14},
-{brand:"ليتل سيزرز",item:"لازانيا",cal:1170,protein:79,carb:62,fat:72},
-{brand:"ليتل سيزرز",item:"خبز الجبنة الايطالية",cal:150,protein:13,carb:8,fat:6},
-{brand:"ليتل سيزرز",item:"رانش صوص",cal:250,protein:3,carb:26,fat:0},
-{brand:"ليتل سيزرز",item:"بطاطس ويدجز مشوية",cal:279,protein:41,carb:11,fat:4},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج كاليفورنيا 6 انش",cal:490,protein:38,carb:25,fat:32},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش فيلي تشيزستيك 6 انش",cal:470,protein:39,carb:22,fat:27},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش بيبروني ستيك 6 انش",cal:560,protein:39,carb:30,fat:33},
-{brand:"تشارليز فيلي ستيك",item:"هلابينو تشيز ستيك 6 انش",cal:460,protein:39,carb:21,fat:29},
-{brand:"تشارليز فيلي ستيك",item:"التمت كلوب",cal:500,protein:42,carb:23,fat:32},
-{brand:"تشارليز فيلي ستيك",item:"ديلي ديلوكس الايطالية 6 انش",cal:510,protein:40,carb:27,fat:28},
-{brand:"تشارليز فيلي ستيك",item:"فيجي ديلايت 6 انش",cal:390,protein:48,carb:14,fat:19},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج بوفالو 6 انش",cal:450,protein:41,carb:18,fat:32},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج ترياكي",cal:440,protein:41,carb:17,fat:33},
-{brand:"تشارليز فيلي ستيك",item:"ساندوتش فيلي دجاج 6 انش",cal:370,protein:37,carb:11,fat:32},
-{brand:"تشارليز فيلي ستيك",item:"تركي شيدر ملت 6 انش",cal:480,protein:42,carb:20,fat:33},
-{brand:"تشارليز فيلي ستيك",item:"بطاطا",cal:400,protein:46,carb:22,fat:5},
-{brand:"تشارليز فيلي ستيك",item:"التيميت فرايز",cal:790,protein:61,carb:54,fat:15},
-{brand:"بيتزاراتي",item:"بيتزا مارجريتا",cal:1060,protein:118,carb:52,fat:30},
-{brand:"بيتزاراتي",item:"بيتزاراتي",cal:950,protein:98,carb:45,fat:30},
-{brand:"بيتزاراتي",item:"بولو بيكانتي",cal:920,protein:98,carb:45,fat:30},
-{brand:"بيتزاراتي",item:"تري فورماجي",cal:870,protein:90,carb:43,fat:30},
-{brand:"بيتزاراتي",item:"بيتزا الروكا",cal:1140,protein:118,carb:52,fat:30},
-{brand:"بيتزاراتي",item:"بيترا الدجاج",cal:1040,protein:118,carb:52,fat:30},
-{brand:"بيتزاراتي",item:"حلقات النوتيلا",cal:1470,protein:161,carb:78,fat:31},
-{brand:"بيتزاراتي",item:"كالزون السبانخ",cal:760,protein:78,carb:39,fat:25},
-{brand:"بيتزاراتي",item:"سلطة الجرجير",cal:165,protein:23,carb:2,fat:14},
-{brand:"ماكدونالدز",item:"ماك عربي دجاج",cal:537,protein:54,carb:24,fat:26.25},
-{brand:"ماكدونالدز",item:"تشيكن ماك ناجتس",cal:169,protein:12,carb:9,fat:10},
-{brand:"ماكدونالدز",item:"ماك مافن بالبيض",cal:288,protein:28,carb:12,fat:17}
+{brand:"برجرايزر",item:"كلاسيك برجر تشكن مشوي",cal:495,protein:38,carb:55,fat:13},
+{brand:"برجرايزر",item:"برجر ميلتايززر لحم",cal:514,protein:30,carb:37,fat:27},
+{brand:"برجرايزر",item:"برجر ميلتايززر لحم دبل",cal:652,protein:42,carb:37,fat:36},
+{brand:"برجرايزر",item:"كلاسيك برجر تشكن مشوي دبل",cal:631,protein:68,carb:55,fat:15},
+{brand:"برجرايزر",item:"برجر ميلتايززر دجاج",cal:469,protein:25,carb:40,fat:23},
+{brand:"برجرايزر",item:"كلاسيك برجر لحم",cal:632,protein:34,carb:55,fat:32},
+{brand:"برجرايزر",item:"كلاسيك برجر لحم دبل",cal:844,protein:52,carb:55,fat:47},
+{brand:"برجرايزر",item:"صوص",cal:95,protein:0,carb:9,fat:6},
+{brand:"برجرايزر",item:"شريحة جبن اضافية",cal:48,protein:2,carb:1,fat:4},
+{brand:"برجرايزر",item:"بطاطس مقلية - كبير",cal:479,protein:7,carb:54,fat:24},
+{brand:"هارديز",item:"ساندوتش مشروم اند سويس",cal:680,protein:36,carb:53,fat:38},
+{brand:"هارديز",item:"ساندوتش دجاج فيليه",cal:710,protein:35,carb:64,fat:36},
+{brand:"هارديز",item:"ساندوتش سنتافي حار",cal:655,protein:32,carb:53,fat:35},
+{brand:"هارديز",item:"بطاطس حجم وسط",cal:490,protein:5,carb:63,fat:24},
+{brand:"ليتل سيزرز",item:"بيتزا خضار",cal:270,protein:13,carb:33,fat:10},
+{brand:"ليتل سيزرز",item:"بيتزا دجاج سوبريم",cal:310,protein:14,carb:33,fat:15},
+{brand:"ليتل سيزرز",item:"الفريدو الدجاج",cal:1450,protein:67,carb:154,fat:61},
+{brand:"ليتل سيزرز",item:"بيتزا بيبيروني",cal:330,protein:14,carb:28,fat:18},
+{brand:"ليتل سيزرز",item:"لازانيا",cal:1170,protein:72,carb:79,fat:62},
+{brand:"ليتل سيزرز",item:"خبز الجبنة الايطالية",cal:150,protein:6,carb:13,fat:8},
+{brand:"ليتل سيزرز",item:"رانش صوص",cal:250,protein:0,carb:3,fat:26},
+{brand:"ليتل سيزرز",item:"بطاطس ويدجز مشوية",cal:279,protein:4,carb:41,fat:11},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج كاليفورنيا 6 انش",cal:490,protein:32,carb:38,fat:25},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش فيلي تشيزستيك 6 انش",cal:470,protein:27,carb:39,fat:22},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش بيبروني ستيك 6 انش",cal:560,protein:33,carb:39,fat:30},
+{brand:"تشارليز فيلي ستيك",item:"هلابينو تشيز ستيك 6 انش",cal:460,protein:29,carb:39,fat:21},
+{brand:"تشارليز فيلي ستيك",item:"التمت كلوب",cal:500,protein:32,carb:42,fat:23},
+{brand:"تشارليز فيلي ستيك",item:"ديلي ديلوكس الايطالية 6 انش",cal:510,protein:28,carb:40,fat:27},
+{brand:"تشارليز فيلي ستيك",item:"فيجي ديلايت 6 انش",cal:390,protein:19,carb:48,fat:14},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج بوفالو 6 انش",cal:450,protein:32,carb:41,fat:18},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش دجاج ترياكي",cal:440,protein:33,carb:41,fat:17},
+{brand:"تشارليز فيلي ستيك",item:"ساندوتش فيلي دجاج 6 انش",cal:370,protein:32,carb:37,fat:11},
+{brand:"تشارليز فيلي ستيك",item:"تركي شيدر ملت 6 انش",cal:480,protein:33,carb:42,fat:20},
+{brand:"تشارليز فيلي ستيك",item:"بطاطا وجبة اساسيةة",cal:400,protein:5,carb:46,fat:22},
+{brand:"تشارليز فيلي ستيك",item:"التيميت فرايز",cal:790,protein:15,carb:61,fat:54},
+{brand:"بيتزاراتي",item:"بيتزا مارجريتا",cal:1060,protein:30,carb:118,fat:52},
+{brand:"بيتزاراتي",item:"بيتزاراتي",cal:950,protein:30,carb:98,fat:45},
+{brand:"بيتزاراتي",item:"بولو بيكانتي",cal:920,protein:30,carb:98,fat:45},
+{brand:"بيتزاراتي",item:"تري فورماجي",cal:870,protein:30,carb:90,fat:43},
+{brand:"بيتزاراتي",item:"بيتزا الروكا",cal:1140,protein:30,carb:118,fat:52},
+{brand:"بيتزاراتي",item:"بيترا الدجاج",cal:1040,protein:30,carb:118,fat:52},
+{brand:"بيتزاراتي",item:"حلقات النوتيلا",cal:1470,protein:31,carb:161,fat:78},
+{brand:"بيتزاراتي",item:"كالزون السبانخ",cal:760,protein:25,carb:78,fat:39},
+{brand:"بيتزاراتي",item:"سلطة الجرجير",cal:165,protein:14,carb:23,fat:2},
+{brand:"بيتزاراتي",item:"هوت دوج رول",cal:690,protein:25,carb:78,fat:39},
+{brand:"ماكدونالدز",item:"ماك تشيكن",cal:420,protein:16,carb:47,fat:18},
+{brand:"ماكدونالدز",item:"بيج ماك",cal:524,protein:24,carb:48,fat:25},
+{brand:"ماكدونالدز",item:"ماك راب تشيكن وجبة اساسية",cal:410,protein:12,carb:31,fat:26},
+{brand:"ماكدونالدز",item:"ماك تشيكن سبايسي",cal:477,protein:19,carb:48,fat:23},
+{brand:"ماكدونالدز",item:"دبل تشيز برجر",cal:462,protein:25,carb:37,fat:23},
+{brand:"ماكدونالدز",item:"جراند تشيكن سبيشال",cal:911,protein:35,carb:73,fat:52},
+{brand:"ماكدونالدز",item:"بيف برجر",cal:264,protein:12,carb:35,fat:8},
+{brand:"ماكدونالدز",item:"جراند تشيكن سبايسي",cal:757,protein:33,carb:66,fat:40},
+{brand:"ماكدونالدز",item:"جراند تشيكن ديلوكس",cal:862,protein:32,carb:76,fat:48},
+{brand:"ماكدونالدز",item:"ماك ارابيا تشيكن",cal:536,protein:27,carb:54,fat:23},
+{brand:"ماكدونالدز",item:"ليتل تايستي دجاج",cal:451,protein:20,carb:45,fat:20},
+{brand:"ماكدونالدز",item:"باربيكيو انجوس",cal:645,protein:32,carb:59,fat:31},
+{brand:"ماكدونالدز",item:"سبايسي كرانشي دجاج",cal:568,protein:30,carb:67,fat:20},
+{brand:"ماكدونالدز",item:"فيجي برجر ديلوكس",cal:431,protein:9,carb:54,fat:20},
+{brand:"ماكدونالدز",item:"بيج تايستي",cal:882,protein:40,carb:57,fat:53},
+{brand:"ماكدونالدز",item:"تشيكر",cal:435,protein:20,carb:38,fat:22},
+{brand:"ماكدونالدز",item:"كوارتر باوندر بالجبن",cal:544,protein:31,carb:39,fat:29},
+{brand:"ماكدونالدز",item:"تشكن برجر",cal:287,protein:11,carb:36,fat:10},
+{brand:"ماكدونالدز",item:"بيف برقر",cal:264,protein:12,carb:33.75,fat:9},
+{brand:"ماكدونالدز",item:"تشيز برجر",cal:328,protein:15,carb:35.5,fat:14},
+{brand:"ماكدونالدز",item:"ماك رويال",cal:576,protein:28,carb:41.75,fat:33},
+{brand:"ماكدونالدز",item:"يج ماك",cal:547,protein:25,carb:48.75,fat:28},
+{brand:"ماكدونالدز",item:"كوارتر باوندر",cal:544,protein:32.425,carb:40.8,fat:27.9},
+{brand:"ماكدونالدز",item:"ماك راب الدجاج الحارة",cal:405,protein:12.05,carb:30.7,fat:26},
+{brand:"ماكدونالدز",item:"ماك راب الدجاج",cal:410,protein:12.325,carb:31,fat:26.3},
+{brand:"ماكدونالدز",item:"تشيكن ماك",cal:547,protein:23.5,carb:57,fat:25},
+{brand:"ماكدونالدز",item:"تشيكن برجر",cal:285,protein:10.5,carb:36,fat:11},
+{brand:"ماكدونالدز",item:"ماك عربي دجاج",cal:537,protein:26.25,carb:54,fat:24},
+{brand:"ماكدونالدز",item:"تشيكن ماك ناجتس",cal:169,protein:10,carb:12,fat:9},
+{brand:"ماكدونالدز",item:"ماك مافن بالبيض",cal:288,protein:17,carb:28,fat:12},
+{brand:"ماكدونالدز",item:"هاش براونز",cal:179,protein:1.5,carb:14,fat:13},
+{brand:"ماكدونالدز",item:"ماك مافن صوصج بالبيض",cal:349,protein:23.25,carb:28,fat:16},
+{brand:"ماكدونالدز",item:"سلطة سيزر بالدجاج",cal:190,protein:27,carb:8,fat:5},
+{brand:"ماكدونالدز",item:"تشيكن ماك ناجتس. (٤ حبات)",cal:155,protein:9,carb:9,fat:9},
+{brand:"ماكدونالدز",item:"شرائح الاناناس",cal:25,protein:0,carb:5,fat:0},
+{brand:"ماكدونالدز",item:"تشيكن ستربس  (٢ حبة)",cal:80,protein:6,carb:5,fat:3},
+{brand:"ماكدونالدز",item:"تشيكن ستربس سبايسي. (٢حبة)",cal:75,protein:5,carb:5,fat:3},
+{brand:"ماكدونالدز",item:"كوكاكولا",cal:150,protein:0,carb:38,fat:0},
+{brand:"ماكدونالدز",item:"كوب عصير برتقال",cal:114,protein:1,carb:28,fat:0},
+{brand:"ماكدونالدز",item:"قطع تفاح",cal:23,protein:0,carb:5,fat:0},
+{brand:"ماكدونالدز",item:"بطاطس وسط",cal:679,protein:10,carb:83,fat:34},
+{brand:"ماكدونالدز",item:"بطاطس كبير",cal:802,protein:12,carb:98,fat:41},
+{brand:"ماكدونالدز",item:"اسبريسو ماكياتو",cal:12,protein:0,carb:2,fat:0},
+{brand:"ماكدونالدز",item:"كوب شراب التفاح",cal:88,protein:0,carb:22,fat:0},
+{brand:"ماكدونالدز",item:"نيو يورك تشيز",cal:394,protein:9,carb:30,fat:27},
+{brand:"ماكدونالدز",item:"كابتشينو",cal:126,protein:7,carb:12,fat:5},
+{brand:"ماكدونالدز",item:"لاتيه",cal:139,protein:8,carb:13,fat:6},
+{brand:"ماكدونالدز",item:"حليب بالفراولة",cal:174,protein:7,carb:26,fat:4},
+{brand:"ماكدونالدز",item:"حليب فانيلا",cal:123,protein:6,carb:9,fat:6},
+{brand:"ماكدونالدز",item:"موكا",cal:89,protein:5,carb:9,fat:3},
+{brand:"ماكدونالدز",item:"شوكولاتة ساخنة",cal:242,protein:6,carb:37,fat:7},
+{brand:"ماكدونالدز",item:"كورواسون بالحبنة",cal:301,protein:8,carb:31,fat:16},
+{brand:"ماكدونالدز",item:"موكا فرابيه",cal:538,protein:11,carb:76,fat:21},
+{brand:"ماكدونالدز",item:"كراميل فرابيه",cal:689,protein:13,carb:81,fat:34},
+{brand:"ماكدونالدز",item:"فانيليا فرابيه",cal:684,protein:13,carb:84,fat:32},
+{brand:"ماكدونالدز",item:"سموثي الفراولة والموز",cal:563,protein:12,carb:48,fat:36},
+{brand:"ماكدونالدز",item:"ايس لاتيه",cal:102,protein:6,carb:11,fat:3},
+{brand:"ماكدونالدز",item:"كيك تورتا نوتشيولا",cal:365,protein:7,carb:46,fat:19},
+{brand:"ماكدونالدز",item:"كيك الشوكولاتة",cal:375,protein:5,carb:46,fat:19},
+{brand:"ماكدونالدز",item:"كيك التيراميسو",cal:300,protein:4,carb:47,fat:10},
+{brand:"ماكدونالدز",item:"عصير جوافة",cal:341,protein:2,carb:80,fat:0},
+{brand:"ماكدونالدز",item:"سبرايت",cal:167,protein:0,carb:42,fat:0},
+{brand:"ماكدونالدز",item:"فانتا",cal:206,protein:0,carb:52,fat:0},
+{brand:"ماكدونالدز",item:"كوكيز دابل تشوكليت",cal:389,protein:4,carb:51,fat:19},
+{brand:"ماكدونالدز",item:"مافن مع نوتيلا",cal:427,protein:6,carb:47,fat:24},
+{brand:"ماكدونالدز",item:"مافن توت ازرق",cal:505,protein:7,carb:56,fat:28},
+{brand:"ماكدونالدز",item:"كورواسون الشوكلاتة",cal:287,protein:6,carb:31,fat:16},
+{brand:"ماكدونالدز",item:"دونات شوكولاتة ومكسرات",cal:359,protein:7,carb:34,fat:22},
+{brand:"ماكدونالدز",item:"دونات توت وكريمة",cal:299,protein:4,carb:32,fat:17},
+{brand:"ماكدونالدز",item:"دونات تريبل تشوكليت",cal:343,protein:4,carb:33,fat:19},
+{brand:"ماكدونالدز",item:"فطيرة التفاح",cal:231,protein:2,carb:27,fat:12},
+{brand:"ماكدونالدز",item:"كورواسون الزعتر",cal:246,protein:5,carb:27,fat:13},
+{brand:"ماكدونالدز",item:"صوص بيج ماك",cal:64,protein:0,carb:0,fat:3},
+{brand:"ماكدونالدز",item:"ماك فلوري كيتكات",cal:437,protein:9,carb:64,fat:16},
+{brand:"ماكدونالدز",item:"ماك فلوري اوريو",cal:399,protein:8,carb:61,fat:13},
+{brand:"ماكدونالدز",item:"موكا مثلج",cal:176,protein:6,carb:29,fat:3},
+{brand:"ماكدونالدز",item:"صوص بيج تايستي",cal:17,protein:0,carb:0,fat:1},
+{brand:"ماكدونالدز",item:"فانيليا اوريو فرابيه",cal:647,protein:13,carb:95,fat:23},
+{brand:"ماكدونالدز",item:"مكياتو بالكراميل كبير",cal:369,protein:11,carb:30,fat:23},
+{brand:"ماكدونالدز",item:"كاراميل ماكياتو مثلج",cal:465,protein:10,carb:31,fat:33},
+{brand:"ماكدونالدز",item:"ايس كريم فانيلا بالبسكويت",cal:160,protein:3,carb:25,fat:4},
+{brand:"ماكدونالدز",item:"حليب الشوكولاتة",cal:148,protein:7,carb:28,fat:4},
+{brand:"ماكدونالدز",item:"مكياتو بالكراميل وجبة اساسية",cal:127,protein:4,carb:11,fat:8},
+{brand:"ماكدونالدز",item:"بطاطس بالحجم الصغير",cal:339,protein:5.5,carb:41,fat:17},
+{brand:"ماكدونالدز",item:"بطاطس بالحجم وسط",cal:679,protein:10.25,carb:83,fat:34},
+{brand:"ماكدونالدز",item:"بطاطس بالحجم الوجبة اساسية",cal:475,protein:6.75,carb:58,fat:24},
+{brand:"ماكدونالدز",item:"بطاطس بالحجم الكبير",cal:802,protein:10.25,carb:98,fat:41},
+{brand:"ماكدونالدز",item:"شرائح الأناناس",cal:25,protein:0.2375,carb:5.9,fat:0.05},
+{brand:"ماكدونالدز",item:"ماك فلوري لوتس",cal:497.76,protein:8.975,carb:85.54,fat:13.3},
+{brand:"ماكدونالدز",item:"أيس كريم صاندي كراميل",cal:346,protein:6.525,carb:60.5013,fat:8.655},
+{brand:"ماكدونالدز",item:"أيس كريم صاندي شوكولاته",cal:331,protein:7.175,carb:55.1,fat:9.1},
+{brand:"ماكدونالدز",item:"ماك فلوري أوريو",cal:399,protein:8.25,carb:61.8,fat:13.2},
+{brand:"ماكدونالدز",item:"ماك فلوري دولتشي كراميل",cal:501,protein:8.9,carb:70.7,fat:20.2889},
+{brand:"ماكدونالدز",item:"حليب الفراولة",cal:174,protein:7.4,carb:26.2,fat:4.4},
+{brand:"ماكدونالدز",item:"كوكا كولا",cal:150,protein:0,carb:37.5,fat:0},
+{brand:"ماكدونالدز",item:"كوكا كولا زيرو",cal:0,protein:0,carb:0,fat:0},
+{brand:"ماكدونالدز",item:"فانتا 12oz",cal:206,protein:0,carb:51.5,fat:0},
+{brand:"ماكدونالدز",item:"فانتا 16oz",cal:275,protein:0,carb:68.75,fat:0},
+{brand:"ماكدونالدز",item:"فانتا 21oz",cal:361,protein:0,carb:90.25,fat:0},
+{brand:"ماكدونالدز",item:"فانتا 32oz",cal:549,protein:0,carb:137.25,fat:0},
+{brand:"ماكدونالدز",item:"كوب عصير البرتقال 8oz",cal:114,protein:0,carb:28.5,fat:0},
+{brand:"ماكدونالدز",item:"كوب عصير البرتقال 16oz",cal:230,protein:0,carb:57.5,fat:0},
+{brand:"ماكدونالدز",item:"كوب عصير البرتقال 21oz",cal:301,protein:0,carb:75.25,fat:0},
+{brand:"ماكدونالدز",item:"عصير التفاح 12oz",cal:132,protein:0,carb:33,fat:0},
+{brand:"ماكدونالدز",item:"عصير التفاح 16oz",cal:176,protein:0,carb:44,fat:0},
+{brand:"ماكدونالدز",item:"عصير التفاح 21oz",cal:231,protein:0,carb:57.75,fat:0},
+{brand:"ماكدونالدز",item:"حليب بالشوكولاته",cal:184,protein:7.2,carb:28.9,fat:4.4},
+{brand:"ماكدونالدز",item:"حليب",cal:118,protein:6,carb:12.25,fat:5},
+{brand:"ماكدونالدز",item:"ايسد وايت موكا",cal:219,protein:6.45,carb:33.9,fat:6.4},
+{brand:"ماكدونالدز",item:"وايت موكا",cal:326,protein:15.975,carb:50,fat:6.9},
+{brand:"ماكدونالدز",item:"كوكيز دبل تشوكليت",cal:389,protein:3.5,carb:51,fat:19},
+{brand:"ماكدونالدز",item:"مافن نوتيلا",cal:427,protein:5.75,carb:47,fat:24},
+{brand:"ماكدونالدز",item:"مافن توت الازرق",cal:505,protein:7.25,carb:56,fat:28},
+{brand:"ماكدونالدز",item:"كرواسون تشوكليت",cal:287,protein:5,carb:40,fat:11.8889},
+{brand:"ماكدونالدز",item:"دونات التشوكليت والمكسرات",cal:359,protein:6.25,carb:34,fat:22},
+{brand:"ماكدونالدز",item:"دونات التوت والكريمة",cal:299,protein:4.5,carb:32,fat:17},
+{brand:"ماكدونالدز",item:"كوكيز تريبل تشوكليت",cal:389,protein:3.75,carb:48.5,fat:20},
+{brand:"ماكدونالدز",item:"كرواسون الزعتر",cal:246,protein:4.75,carb:27.5,fat:13},
+{brand:"ماكدونالدز",item:"قراند تشيكن سبيشال - Grand chicken special",cal:917,protein:36,carb:74,fat:53},
+{brand:"ماكدونالدز",item:"قراند تشيكن سبايسي - Grand chicken spicy",cal:760,protein:32,carb:68,fat:40},
+{brand:"ماكدونالدز",item:"قراند تشيكن ديلوكس - Grand chicken deluxe",cal:864,protein:32,carb:76,fat:48},
+{brand:"ماكدونالدز",item:"بيج تايستي - Big tasty",cal:833,protein:41,carb:57,fat:49},
+{brand:"ماكدونالدز",item:"تشيكن ماك - Chicken mac",cal:541,protein:22,carb:57,fat:25},
+{brand:"ماكدونالدز",item:"ماك تشيكن - Mac chicken",cal:423,protein:16,carb:47,fat:19},
+{brand:"ماكدونالدز",item:"تشيكن برجر - Chicken burger",cal:475,protein:19,carb:48,fat:23},
+{brand:"ماكدونالدز",item:"بيج ماك - Big mac",cal:534,protein:26,carb:49,fat:26},
+{brand:"ماكدونالدز",item:"ماك رويال - Mac royal",cal:532,protein:29,carb:41,fat:28},
+{brand:"ماكدونالدز",item:"كوارتر باوندر بالجبنة - Quarter punder cheese",cal:541,protein:31,carb:39,fat:29},
+{brand:"ماكدونالدز",item:"تشيكن ناجتس - Chicken nuggets",cal:376,protein:21,carb:28,fat:20},
+{brand:"ماكدونالدز",item:"ماك ارابيا دجاج - Mac arabia chicken",cal:567,protein:27,carb:54,fat:27},
+{brand:"ماكدونالدز",item:"سبايسي ماك تشيكن - Spicy mac chicken",cal:291,protein:11,carb:37,fat:11},
+{brand:"ماكدونالدز",item:"تشيز برجر - Cheese burger",cal:321,protein:15,carb:36,fat:13},
+{brand:"ماكدونالدز",item:"بيف برجر - Beef burger",cal:260,protein:12,carb:35,fat:8},
+{brand:"ماكدونالدز",item:"ميني اسيوي دجاج - Mini asian chicken",cal:358,protein:17,carb:41,fat:14},
+{brand:"ماكدونالدز",item:"برجر دجاج ديلوكس - Chicken burger deluxe",cal:383,protein:14,carb:39,fat:19},
+{brand:"ماكدونالدز",item:"دبل جبنة برجر - Double cheese burger",cal:460,protein:24,carb:37,fat:24},
+{brand:"ماكدونالدز",item:"ماك فيليه سمك - Fish fillet",cal:346,protein:14,carb:41,fat:14},
+{brand:"ماكدونالدز",item:"مافن صوصج بالبيض - Muffin Sausage with Egg",cal:343,protein:23,carb:29,fat:15},
+{brand:"ماكدونالدز",item:"مافن بالبيض - muffin with egg",cal:283,protein:18,carb:28,fat:11},
+{brand:"ماكدونالدز",item:"راب بيض وهاش براونز - Egg and hash brown wrap",cal:458,protein:18,carb:38,fat:26},
+{brand:"ماكدونالدز",item:"راب بيض وصوصج - Egg and sausage wrap",cal:337,protein:21,carb:25,fat:17},
+{brand:"ماكدونالدز",item:"هاش براونز- Hash browns",cal:181,protein:2,carb:14,fat:13},
+{brand:"ماكدونالدز",item:"كروسان جبنة - Cheese croissant",cal:360,protein:9,carb:36,fat:20},
+{brand:"ماكدونالدز",item:"كروسان شوكولاته - Chocolate Croissant",cal:389,protein:8,carb:42,fat:21},
+{brand:"ماكدونالدز",item:"كروسان زعتر - Thyme Croissant",cal:362,protein:8,carb:42,fat:18},
+{brand:"ماكدونالدز",item:"كوكيز دبل شوكولاته - Double Chocolate Cookie",cal:365,protein:4,carb:49,fat:17},
+{brand:"ماكدونالدز",item:"كوكيز تريبل شوكولاته - Triple Chocolate Cookie",cal:386,protein:5,carb:51,fat:18},
+{brand:"ماكدونالدز",item:"ماكرون قهوة - Coffee Macaron",cal:59,protein:1,carb:7,fat:3},
+{brand:"ماكدونالدز",item:"ماكرون توت - Berry Macaron",cal:49,protein:1,carb:9,fat:1},
+{brand:"ماكدونالدز",item:"ماكرون كاراميل - Caramel Macaron",cal:62,protein:1,carb:10,fat:2},
+{brand:"ماكدونالدز",item:"بطاطس (كبير) - Large Fries",cal:809,protein:12,carb:98,fat:41},
+{brand:"ماكدونالدز",item:"سلطة سيزر دجاج - Chicken Caesar Salad",cal:225,protein:28,carb:8,fat:9},
+{brand:"ماكدونالدز",item:"ستشيكن ناجتس - Chicken Nuggets",cal:254,protein:14,carb:18,fat:14},
+{brand:"ماكدونالدز",item:"تشيكن ناجتس - Chicken Nuggets",cal:169,protein:10,carb:12,fat:9},
+{brand:"ماكدونالدز",item:"صلصة الباربكيو - Barbecue Sauce",cal:53,protein:0,carb:11,fat:1},
+{brand:"ماكدونالدز",item:"صلصة سويت اند ساور - Sweet and Sour Sauce",cal:53,protein:0,carb:11,fat:1},
+{brand:"ماكدونالدز",item:"صلصة هوت ماسترد - Hot Mustard Sauce",cal:73,protein:0,carb:7,fat:5},
+{brand:"ماكدونالدز",item:"ماك فلوري اوريو - McFlurry Oreo",cal:397,protein:8,carb:62,fat:13},
+{brand:"ماكدونالدز",item:"آيس كريم صاندي شوكولا - Ice Cream Sundae Chocolate",cal:329,protein:7,carb:55,fat:9},
+{brand:"ماكدونالدز",item:"آيس كريم صاندي فراولة - Ice Cream Sundae Strawberry",cal:291,protein:6,carb:51,fat:7},
+{brand:"ماكدونالدز",item:"آيس كريم بالبسكويت - Ice Cream with Biscuit",cal:165,protein:4,carb:26,fat:5},
+{brand:"ماكدونالدز",item:"عصير التفاح - Apple Juice",cal:244,protein:0,carb:61,fat:0},
+{brand:"ماكدونالدز",item:"كوكاكولا كبير - Large Coca-Cola",cal:400,protein:0,carb:100,fat:0},
+{brand:"ماكدونالدز",item:"فانتا كبير - Large Fanta",cal:548,protein:0,carb:137,fat:0},
+{brand:"ماكدونالدز",item:"سبرايت كبير - Large Sprite",cal:448,protein:0,carb:112,fat:0},
+{brand:"ماكدونالدز",item:"كوكاكولا زيرو كبير - Large Coca-Cola Zero",cal:0,protein:0,carb:0,fat:0},
+{brand:"ماكدونالدز",item:"حليب بالشوكولاتة - Chocolate Milk",cal:176,protein:7,carb:28,fat:4},
+{brand:"ماكدونالدز",item:"حليب بالفراولة - Strawberry Milk",cal:168,protein:7,carb:26,fat:4},
+{brand:"ماكدونالدز",item:"حليب - Milk",cal:122,protein:7,carb:10,fat:6},
+{brand:"ماكدونالدز",item:"قهوة سوداء - Black Coffee",cal:8,protein:0,carb:2,fat:0},
+{brand:"ماكدونالدز",item:"كابتشينو - Cappuccino",cal:125,protein:8,carb:12,fat:5},
+{brand:"ماكدونالدز",item:"لاتيه - Latte",cal:138,protein:8,carb:13,fat:6},
+{brand:"ماكدونالدز",item:"موكا - Mocha",cal:92,protein:5,carb:9,fat:4},
+{brand:"ماكدونالدز",item:"هوت شوكولات - Hot Chocolate",cal:244,protein:6,carb:37,fat:8},
+{brand:"ماكدونالدز",item:"اسبريسو - Espresso",cal:0,protein:0,carb:0,fat:0},
+{brand:"ماكدونالدز",item:"شاي - Tea",cal:4,protein:0.6,carb:0.4,fat:0},
+{brand:"ماكدونالدز",item:"جراند تشيكن سبايسي - Grand Chicken Spicy",cal:638,protein:39,carb:53,fat:30},
+{brand:"ماكدونالدز",item:"بيج تيستي - Big Tasty",cal:598,protein:42,carb:40,fat:30},
+{brand:"ماكدونالدز",item:"تشيكن ماك - Chicken Mac",cal:420,protein:26,carb:52,fat:12},
+{brand:"ماكدونالدز",item:"بيج ماك - Big Mac",cal:396,protein:25,carb:38,fat:16},
+{brand:"ماكدونالدز",item:"بيج ماك 122",cal:484,protein:3,carb:100,fat:8},
+{brand:"ماكدونالدز",item:"تشيكن ماك ماكدونالدز",cal:860,protein:47,carb:69,fat:44}
 ];
 const TARGET = {cal:2272, protein:118.8, carb:317, fat:58.7};
-const MEAL_NAMES = ["وجبة 1 · Meal 1","وجبة 2 · Meal 2","وجبة 3 · Meal 3","سناك · Snack","سناك 2 · Snack 2"];
+const MEAL_NAMES = ["Meal 1","Meal 2","Meal 3","Snack","Snack 2"];
 let store = load();
 let curDate = todayStr();
 let pickTarget = null;
 let picked = null;
 let openMeals = {};
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
-function load(){try{return JSON.parse(localStorage.getItem("foodlog")||"{}");}catch(e){return {};}}
-function save(){localStorage.setItem("foodlog",JSON.stringify(store));}
+/* One-time migration: copy old shared "foodlog" into the unique key once, so history is
+   kept AND it never mixes with sibling apps on the same domain. */
+(function(){try{if(!localStorage.getItem("foodlog_abdullah")){const o=localStorage.getItem("foodlog");if(o&&o!=="{}")localStorage.setItem("foodlog_abdullah",o);}}catch(e){}})();
+function load(){try{return JSON.parse(localStorage.getItem("foodlog_abdullah")||"{}");}catch(e){return {};}}
+function save(){localStorage.setItem("foodlog_abdullah",JSON.stringify(store));}
 function dayData(){ if(!store[curDate]) store[curDate]=MEAL_NAMES.map(()=>[]);
   while(store[curDate].length<MEAL_NAMES.length) store[curDate].push([]);
   return store[curDate];}
@@ -310,23 +556,23 @@ function render(){
     card.innerHTML=`
       <div class="meal-h" data-mi="${mi}">
         <div class="name">${MEAL_NAMES[mi]}</div>
-        <div class="sum">${r1(ms.cal)} سعرة · ب${r1(ms.protein)} ك${r1(ms.carb)} د${r1(ms.fat)} · ${items.length} صنف ${open?'▾':'▸'}</div>
+        <div class="sum">${r1(ms.cal)} kcal · P${r1(ms.protein)} C${r1(ms.carb)} F${r1(ms.fat)} · ${items.length} item ${open?'▾':'▸'}</div>
       </div>
       <div class="meal-body" style="display:${open?'block':'none'}">
         ${items.map((it,ii)=>`
           <div class="item">
-            <div class="nm">${it.name}<small>${it.qtyLabel} · بروتين ${r1(it.protein)} · كارب ${r1(it.carb)} · دهون ${r1(it.fat)}</small></div>
+            <div class="nm">${it.name}<small>${it.qtyLabel} · P ${r1(it.protein)} · C ${r1(it.carb)} · F ${r1(it.fat)}</small></div>
             <div class="kc">${r1(it.cal)}</div>
             <button class="x" data-mi="${mi}" data-ii="${ii}">×</button>
           </div>`).join("")}
-        <button class="add" data-add="${mi}">＋ أضف صنف · Add food</button>
+        <button class="add" data-add="${mi}">＋ Add food</button>
       </div>`;
     mealsDiv.appendChild(card);
   });
   set("calNow",r1(tot.cal)); set("pNow",r1(tot.protein));
   set("cNow",r1(tot.carb)); set("fNow",r1(tot.fat));
   const left = TARGET.cal - tot.cal;
-  document.getElementById("calLeft").textContent = left>=0 ? `باقي ${r1(left)}` : `زيادة ${r1(-left)}`;
+  document.getElementById("calLeft").textContent = left>=0 ? `${r1(left)} left` : `${r1(-left)} over`;
   document.getElementById("calLeft").style.color = left>=0 ? "var(--muted)" : "var(--over)";
   bar("calBar",tot.cal,TARGET.cal);
   bar("pBar",tot.protein,TARGET.protein);
@@ -350,7 +596,7 @@ function bar(id,now,tgt){
 let activeCat = "all";
 function openModal(mi){
   pickTarget=mi; picked=null;
-  document.getElementById("sheetTitle").textContent="أضف إلى "+MEAL_NAMES[mi];
+  document.getElementById("sheetTitle").textContent="Add to "+MEAL_NAMES[mi];
   document.getElementById("qtyPane").style.display="none";
   document.getElementById("searchBox").value="";
   activeCat="all";
@@ -359,13 +605,13 @@ function openModal(mi){
 }
 function closeModal(){document.getElementById("modal").classList.remove("on");}
 const CATS=[
-  {k:"all",l:"الكل"},
-  {k:"بروتين",l:"بروتين"},
-  {k:"كارب",l:"كارب"},
-  {k:"دهون",l:"دهون"},
-  {k:"فواكه",l:"فواكه 🍎"},
-  {k:"خضار",l:"خضار 🥦"},
-  {k:"مطاعم",l:"مطاعم 🍔"}
+  {k:"all",l:"All"},
+  {k:"بروتين",l:"Protein"},
+  {k:"كارب",l:"Carb"},
+  {k:"دهون",l:"Fat"},
+  {k:"فواكه",l:"Fruit 🍎"},
+  {k:"خضار",l:"Veg 🥦"},
+  {k:"مطاعم",l:"Restaurants 🍔"}
 ];
 function buildTabs(){
   const t=document.getElementById("catTabs");t.innerHTML="";
@@ -390,14 +636,14 @@ function renderFoodList(){
   rows.forEach(r=>{
     const el=document.createElement("div");el.className="frow";
     if(r.type==="ing"){
-      el.innerHTML=`<div class="fn">${r.name}<small>لكل ${r.unit==='حبة'?'حبة':'100'+r.unit} · ${r1((r.unit==='حبة'?r.cal:r.cal*100))} سعرة</small></div><div class="fk">${r.cat}</div>`;
+      el.innerHTML=`<div class="fn">${r.name}<small>per ${r.unit==='حبة'?'piece':'100'+r.unit} · ${r1((r.unit==='حبة'?r.cal:r.cal*100))} kcal</small></div><div class="fk">${r.cat}</div>`;
     }else{
-      el.innerHTML=`<div class="fn">${r.item}<small>${r.brand} · حصة كاملة</small></div><div class="fk">${r.cal} سعرة</div>`;
+      el.innerHTML=`<div class="fn">${r.item}<small>${r.brand} · full serving</small></div><div class="fk">${r.cal} kcal</div>`;
     }
     el.onclick=()=>selectFood(r);
     list.appendChild(el);
   });
-  if(rows.length===0) list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">لا نتائج · No results</div>';
+  if(rows.length===0) list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">No results</div>';
 }
 function selectFood(r){
   picked=r;
@@ -407,12 +653,12 @@ function selectFood(r){
   const quick=document.getElementById("quickBtns");
   if(r.type==="meal"){
     document.getElementById("pickedName").innerHTML=`${r.item} <small>${r.brand}</small>`;
-    unitEl.textContent="حصة";
+    unitEl.textContent="serving";
     qin.value=1;qin.step="0.5";
     quick.innerHTML=["0.5","1","1.5","2"].map(v=>`<button data-q="${v}">${v}</button>`).join("");
   }else{
     document.getElementById("pickedName").innerHTML=`${r.name} <small>(${r.cat})</small>`;
-    if(r.unit==="حبة"){unitEl.textContent="حبة";qin.value=1;qin.step="1";
+    if(r.unit==="حبة"){unitEl.textContent="piece";qin.value=1;qin.step="1";
       quick.innerHTML=["1","2","3","4"].map(v=>`<button data-q="${v}">${v}</button>`).join("");
     }else{unitEl.textContent=r.unit;qin.value=100;qin.step="10";
       quick.innerHTML=["30","50","100","150","200"].map(v=>`<button data-q="${v}">${v}</button>`).join("");
@@ -430,15 +676,15 @@ function updatePreview(){
   const qty=parseFloat(document.getElementById("qtyInput").value)||0;
   const m=calc(picked,qty);
   document.getElementById("qtyPreview").innerHTML=
-    `<span>سعرات <b>${r1(m.cal)}</b></span><span>بروتين <b>${r1(m.protein)}</b>g</span><span>كارب <b>${r1(m.carb)}</b>g</span><span>دهون <b>${r1(m.fat)}</b>g</span>`;
+    `<span>kcal <b>${r1(m.cal)}</b></span><span>Protein <b>${r1(m.protein)}</b>g</span><span>Carb <b>${r1(m.carb)}</b>g</span><span>Fat <b>${r1(m.fat)}</b>g</span>`;
 }
 function saveItem(){
   const qty=parseFloat(document.getElementById("qtyInput").value)||0;
   if(qty<=0){return;}
   const m=calc(picked,qty);
   let name,label;
-  if(picked.type==="meal"){name=picked.item+" ("+picked.brand+")";label=qty+" حصة";}
-  else{name=picked.name;label=qty+" "+(picked.unit==="حبة"?"حبة":picked.unit);}
+  if(picked.type==="meal"){name=picked.item+" ("+picked.brand+")";label=qty+" serving";}
+  else{name=picked.name;label=qty+" "+(picked.unit==="حبة"?"piece":picked.unit);}
   dayData()[pickTarget].push({name,qtyLabel:label,...m});
   openMeals[pickTarget]=true;
   save();closeModal();render();
@@ -466,42 +712,44 @@ function countItems(dateStr){
 function deepCopyMeals(meals){return meals.map(meal=>meal.map(it=>({...it})));}
 function copyCurrentDay(){
   const n=countItems(curDate);
-  if(n===0){alert("هذا اليوم مافيه أكل تنسخه.");return;}
+  if(n===0){alert("This day has no food to copy.");return;}
   clipboardDay={date:curDate, meals:deepCopyMeals(dayData())};
   updateCopyUI();
-  alert(`تم نسخ أكل يوم ${curDate} (${n} صنف). روح لليوم اللي تبي وألصقه.`);
+  alert(`Copied ${curDate} (${n} items). Go to another day and paste.`);
 }
 function pasteIntoCurrentDay(){
-  if(!clipboardDay){alert("ماعندك شي منسوخ. اضغط «نسخ» على يوم أول.");return;}
+  if(!clipboardDay){alert("Nothing copied. Tap Copy on a day first.");return;}
   const target=dayData();
   clipboardDay.meals.forEach((meal,mi)=>{
     if(!target[mi]) target[mi]=[];
     meal.forEach(item=>target[mi].push({...item}));
   });
   save();openMeals={};render();
-  alert(`تم لصق أكل يوم ${clipboardDay.date} في يوم ${curDate}.`);
+  alert(`Pasted ${clipboardDay.date} into ${curDate}.`);
 }
 function updateCopyUI(){
   const pasteBtn=document.getElementById("pasteDayBtn");
-  if(clipboardDay){pasteBtn.style.display="";pasteBtn.textContent=`📥 لصق (${clipboardDay.date})`;}
+  if(clipboardDay){pasteBtn.style.display="";pasteBtn.textContent=`📥 Paste (${clipboardDay.date})`;}
   else{pasteBtn.style.display="none";}
 }
 document.getElementById("copyDayBtn").onclick=copyCurrentDay;
 document.getElementById("pasteDayBtn").onclick=pasteIntoCurrentDay;
 document.getElementById("clearDay").onclick=()=>{
-  if(confirm("مسح كل أصناف هذا اليوم؟ Clear all foods for this day?")){
+  if(confirm("Clear all foods for this day?")){
     store[curDate]=MEAL_NAMES.map(()=>[]);save();render();}
 };
-/* ---------- SUPPLEMENTS (daily checklist, saved per-day, separate from food) ---------- */
+
+/* ---------- SUPPLEMENTS (daily checklist, saved per-day under "supplog") ---------- */
 const SUPPLEMENTS = [
-  {id:"omega3", name:"الأوميقا 3 · Omega 3", dose:"حبتين مع وجبة بعد التمرين"},
-  {id:"mag",    name:"المغنيسيوم غلايسينيت · Magnesium Glycinate", dose:"حبتين قبل النوم بنص ساعة–ساعة"},
-  {id:"vitd",   name:"فيتامين د · Vitamin D", dose:"حبة وحدة باليوم مع وجبة فيها دهون"},
-  {id:"zinc",   name:"الزنك · Zinc", dose:"حبة كل يومين بأي وقت، يفضّل مع المغنيسيوم قبل النوم"},
-  {id:"creatine", name:"الكرياتين · Creatine", dose:"سكوب 5 جرام كل يوم بأي وقت"}
+  {id:"omega3", name:"Omega 3 · الأوميقا 3", dose:"2 caps with a meal after training"},
+  {id:"mag",    name:"Magnesium Glycinate · المغنيسيوم", dose:"2 tabs 30–60 min before bed"},
+  {id:"vitd",   name:"Vitamin D · فيتامين د", dose:"1 per day with a meal that has fat"},
+  {id:"zinc",   name:"Zinc · الزنك", dose:"1 every 2 days, anytime (prefer with magnesium before bed)"},
+  {id:"creatine", name:"Creatine · الكرياتين", dose:"1 scoop 5g every day, anytime"}
 ];
-function loadSupp(){try{return JSON.parse(localStorage.getItem("supplog")||"{}");}catch(e){return {};}}
-function saveSupp(){localStorage.setItem("supplog",JSON.stringify(suppStore));}
+(function(){try{if(!localStorage.getItem("supplog_abdullah")){const o=localStorage.getItem("supplog");if(o&&o!=="{}")localStorage.setItem("supplog_abdullah",o);}}catch(e){}})();
+function loadSupp(){try{return JSON.parse(localStorage.getItem("supplog_abdullah")||"{}");}catch(e){return {};}}
+function saveSupp(){localStorage.setItem("supplog_abdullah",JSON.stringify(suppStore));}
 let suppStore = loadSupp();
 function suppDay(){ if(!suppStore[curDate]) suppStore[curDate]={}; return suppStore[curDate]; }
 function renderSupps(){
@@ -518,6 +766,248 @@ function renderSupps(){
     list.appendChild(row);
   });
 }
+
+/* ============ PLAN VIEW + SWAPS + PLAN SWITCHER ============ */
+function ing(name){return INGREDIENTS.find(i=>i.name===name);}
+const SWAP_GROUPS = {
+  protein_lean: {match:"protein", foods:["دجاج","لحم بقري (10% دهون)","صدر تركي","سمك مطبوخ","تونة بالماء","جمبري مطبوخ","سالمون مطبوخ"]},
+  dairy_pro: {match:"protein", foods:["زبادي يوناني خالي الدسم","جبنة قريش"]},
+  whey: {match:"protein", foods:["واي بروتين أيزوليت","واي بروتين كونسينتريت"]},
+  carb_main: {match:"carb", foods:["رز أبيض مطبوخ","رز بني مطبوخ","بطاطس مطبوخة","بطاطا حلوة مطبوخة","مكرونة مطبوخة"]},
+  carb_oat: {match:"carb", foods:["شوفان","كورن فليكس"]},
+  fruit: {match:"carb", foods:["فواكه (موز، تفاح، برتقال)","تمر"]},
+  fat: {match:"fat", foods:["زيت زيتون","مكسرات","زبدة الفول السوداني (بيور)"]}
+};
+function groupOf(name){
+  for(const k in SWAP_GROUPS){ if(SWAP_GROUPS[k].foods.includes(name)) return k; }
+  return null;
+}
+/* ---- The 4 plans. Each: {name, desc, meals:[{mi, items:[{name,qty}]}]} ---- */
+const PLANS = [
+  {
+    name:"My Default", desc:"Your usual 3-meal plan.",
+    meals:[
+      {mi:0, items:[{name:"كورن فليكس",qty:100},{name:"حليب ندى سادة",qty:325},{name:"تمر",qty:50},{name:"زبدة الفول السوداني (بيور)",qty:30}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:250},{name:"دجاج",qty:100},{name:"فواكه (موز، تفاح، برتقال)",qty:200},{name:"زيت زيتون",qty:10}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:200},{name:"دجاج",qty:150},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]}
+    ]
+  },
+  {
+    name:"Morning Training", desc:"Light pre-workout, then a big post-workout meal — best fit for morning gym days.",
+    meals:[
+      {mi:0, items:[{name:"تمر",qty:60},{name:"واي بروتين أيزوليت",qty:30},{name:"فواكه (موز، تفاح، برتقال)",qty:100}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:350},{name:"دجاج",qty:170},{name:"فواكه (موز، تفاح، برتقال)",qty:150},{name:"زيت زيتون",qty:12}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:220},{name:"دجاج",qty:120},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]},
+      {mi:3, items:[{name:"شوفان",qty:50},{name:"حليب قليل الدسم",qty:250},{name:"زبدة الفول السوداني (بيور)",qty:15}]}
+    ]
+  },
+  {
+    name:"Fasted Training", desc:"Train on an empty stomach, then a large post-workout meal breaks the fast.",
+    meals:[
+      {mi:0, items:[{name:"رز أبيض مطبوخ",qty:380},{name:"دجاج",qty:180},{name:"فواكه (موز، تفاح، برتقال)",qty:250},{name:"زيت زيتون",qty:12}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:260},{name:"دجاج",qty:130},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]},
+      {mi:2, items:[{name:"شوفان",qty:55},{name:"حليب قليل الدسم",qty:250},{name:"تمر",qty:40},{name:"زبدة الفول السوداني (بيور)",qty:15}]}
+    ]
+  },
+  {
+    name:"Even Split", desc:"Balanced meals + snacks spread evenly through the day — simplest to follow.",
+    meals:[
+      {mi:0, items:[{name:"شوفان",qty:55},{name:"حليب قليل الدسم",qty:250},{name:"بيض",qty:2},{name:"فواكه (موز، تفاح، برتقال)",qty:150}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:250},{name:"دجاج",qty:130},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:8}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:220},{name:"دجاج",qty:120},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:8}]},
+      {mi:3, items:[{name:"تمر",qty:60},{name:"واي بروتين أيزوليت",qty:25}]},
+      {mi:4, items:[{name:"زبادي يوناني خالي الدسم",qty:200},{name:"مكسرات",qty:18}]}
+    ]
+  }
+];
+let activePlan = 0;
+function macrosFor(name,qty){const r=ing(name);if(!r)return{cal:0,protein:0,carb:0,fat:0};
+  return {cal:r.cal*qty,protein:r.protein*qty,carb:r.carb*qty,fat:r.fat*qty};}
+function unitLabel(name,qty){const r=ing(name);return qty+" "+(r&&r.unit==="حبة"?"pc":(r?r.unit:"g"));}
+function matchQty(origName,origQty,altName){
+  const a=ing(altName); if(!a) return origQty;
+  const g=groupOf(origName);
+  const macro=g?SWAP_GROUPS[g].match:"cal";
+  const oVal=macrosFor(origName,origQty)[macro];
+  const per=a[macro];
+  let q;
+  if(per&&per>0){ q=oVal/per; }
+  else if(a.cal>0){ q=macrosFor(origName,origQty).cal/a.cal; }
+  else return origQty;
+  if(a.unit==="حبة") q=Math.max(1,Math.round(q)); else q=Math.round(q/5)*5;
+  return q||origQty;
+}
+function logFood(mi,name,qty){
+  const m=macrosFor(name,qty);
+  dayData()[mi].push({name,qtyLabel:unitLabel(name,qty),...m});
+  openMeals[mi]=true; save();
+}
+function askSlot(){
+  const msg="Add to which meal?\n1 = Meal 1\n2 = Meal 2\n3 = Meal 3\n4 = Snack\n5 = Snack 2";
+  const a=prompt(msg,"1");
+  if(a===null) return null;
+  const n=parseInt(a,10);
+  if(n>=1&&n<=5) return n-1;
+  alert("Please type a number from 1 to 5."); return null;
+}
+function flashBtn(btn){
+  const old=btn.textContent; btn.textContent="✓ Added"; btn.classList.add("flash");
+  setTimeout(()=>{btn.textContent=old; btn.classList.remove("flash");},1100);
+}
+function addFoodToSlot(name,qty,btn){
+  const mi=askSlot(); if(mi===null) return;
+  logFood(mi,name,qty); render(); flashBtn(btn);
+}
+function addRestaurantToSlot(item,brand,cal,p,c,f,btn){
+  const mi=askSlot(); if(mi===null) return;
+  dayData()[mi].push({name:item+" ("+brand+")",qtyLabel:"1 serving",cal:+cal,protein:+p,carb:+c,fat:+f});
+  openMeals[mi]=true; save(); render(); flashBtn(btn);
+}
+function renderPlanPicker(){
+  const pp=document.getElementById("planPick"); pp.innerHTML="";
+  PLANS.forEach((pl,i)=>{
+    const b=document.createElement("button");
+    b.className="planbtn"+(i===activePlan?" on":"");
+    b.textContent=pl.name;
+    b.onclick=()=>{activePlan=i;renderPlanPicker();renderPlan();};
+    pp.appendChild(b);
+  });
+  document.getElementById("planDesc").textContent=PLANS[activePlan].desc;
+}
+function renderPlan(){
+  const PLAN=PLANS[activePlan].meals;
+  const RESTAURANT_MEALS={}; PLAN.forEach(m=>{ if(m.mi===1||m.mi===2) RESTAURANT_MEALS[m.mi]=true; });
+  const wrap=document.getElementById("planMeals"); wrap.innerHTML="";
+  PLAN.forEach((meal,pidx)=>{
+    let ms={cal:0,protein:0,carb:0,fat:0};
+    meal.items.forEach(it=>{const m=macrosFor(it.name,it.qty);ms.cal+=m.cal;ms.protein+=m.protein;ms.carb+=m.carb;ms.fat+=m.fat;});
+    const card=document.createElement("div"); card.className="pmeal";
+    let html=`<div class="pmeal-h"><div class="name">${MEAL_NAMES[meal.mi]}</div>
+      <div class="mac">${r1(ms.cal)} kcal · P${r1(ms.protein)} C${r1(ms.carb)} F${r1(ms.fat)}</div></div>
+      <div class="ptbl">
+        <div class="ptbl-head"><div>Plan</div><div>Replace with</div></div>`;
+    meal.items.forEach((it,iidx)=>{
+      const m=macrosFor(it.name,it.qty);
+      const g=groupOf(it.name);
+      const alts=g?SWAP_GROUPS[g].foods.filter(n=>n!==it.name):[];
+      const left=`<div class="pcell left">
+          <div class="fn">${it.name}<small>${unitLabel(it.name,it.qty)}</small></div>
+          <div class="kc">${r1(m.cal)} kcal · P${r1(m.protein)} C${r1(m.carb)} F${r1(m.fat)}</div>
+          <button class="addbtn" data-addfood="${it.name}|${it.qty}|${pidx}|${iidx}">＋ Add</button>
+        </div>`;
+      let right;
+      if(alts.length){
+        const opts=alts.map((an)=>{const aq=matchQty(it.name,it.qty,an);
+          return `<option value="${an}|${aq}">${an} (${unitLabel(an,aq)})</option>`;}).join("");
+        right=`<div class="pcell">
+          <select data-info="info-${pidx}-${iidx}">
+            <option value="">— pick a swap —</option>${opts}
+          </select>
+          <div class="altinfo" id="info-${pidx}-${iidx}">Pick an item to see its amount and macros.</div>
+        </div>`;
+      } else {
+        right=`<div class="pcell"><div class="altinfo">No swap for this item.</div></div>`;
+      }
+      html+=`<div class="prow">${left}${right}</div>`;
+    });
+    html+=`</div>`;
+    if(RESTAURANT_MEALS[meal.mi]){
+      const target=ms.cal;
+      const ranked=MEALS.slice().sort((a,b)=>Math.abs(a.cal-target)-Math.abs(b.cal-target)).slice(0,8);
+      const opts=ranked.map(r=>`<option value="${r.item}|${r.brand}|${r.cal}|${r.protein}|${r.carb}|${r.fat}">${r.item} — ${r.brand} (${r.cal} kcal)</option>`).join("");
+      html+=`<div style="padding:11px 12px;border-top:1px solid var(--line);">
+        <div style="font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:6px;">🍔 If eating out (closest to ${r1(target)} kcal)</div>
+        <select data-rest="rest-${pidx}" style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;font-size:12.5px;font-family:inherit;">
+          <option value="">— pick a restaurant meal —</option>${opts}
+        </select>
+        <div class="altinfo" id="rest-${pidx}" style="margin-top:6px;">Pick a restaurant meal to compare it to this meal.</div>
+        <button class="addbtn" data-addrest-from="rest-${pidx}" style="display:none;">＋ Add this restaurant meal</button>
+      </div>`;
+    }
+    card.innerHTML=html; wrap.appendChild(card);
+  });
+  let tot={cal:0,protein:0,carb:0,fat:0};
+  PLAN.forEach(meal=>meal.items.forEach(it=>{const m=macrosFor(it.name,it.qty);tot.cal+=m.cal;tot.protein+=m.protein;tot.carb+=m.carb;tot.fat+=m.fat;}));
+  const foot=document.createElement("div"); foot.className="plan-foot";
+  foot.innerHTML=`<div class="big">${r1(tot.cal)} kcal</div>
+    <div class="lab">Protein ${r1(tot.protein)} · Carb ${r1(tot.carb)} · Fat ${r1(tot.fat)} &nbsp;|&nbsp; Target ${TARGET.cal}/${Math.round(TARGET.protein)}/${TARGET.carb}/${Math.round(TARGET.fat)}</div>`;
+  wrap.appendChild(foot);
+  wrap.querySelectorAll("select[data-info]").forEach(sel=>sel.onchange=()=>{
+    const info=document.getElementById(sel.dataset.info);
+    if(!sel.value){info.textContent="Pick an item to see its amount and macros.";return;}
+    const [name,qty]=sel.value.split("|"); const m=macrosFor(name,+qty);
+    info.innerHTML=`<span class="ac">${name}</span> — ${unitLabel(name,+qty)}<br>${r1(m.cal)} kcal · P ${r1(m.protein)} · C ${r1(m.carb)} · F ${r1(m.fat)}`;
+  });
+  wrap.querySelectorAll("button[data-addfood]").forEach(b=>b.onclick=()=>{
+    const [fixedName,fixedQty,pidx,iidx]=b.dataset.addfood.split("|");
+    const swapSel=document.querySelector(`select[data-info="info-${pidx}-${iidx}"]`);
+    let name=fixedName, qty=+fixedQty;
+    if(swapSel && swapSel.value){ const parts=swapSel.value.split("|"); name=parts[0]; qty=+parts[1]; }
+    addFoodToSlot(name,qty,b);
+  });
+  wrap.querySelectorAll("select[data-rest]").forEach(sel=>sel.onchange=()=>{
+    const info=document.getElementById(sel.dataset.rest);
+    const addBtn=wrap.querySelector(`button[data-addrest-from="${sel.dataset.rest}"]`);
+    if(!sel.value){info.textContent="Pick a restaurant meal to compare it to this meal.";if(addBtn)addBtn.style.display="none";return;}
+    const [item,brand,cal,p,c,f]=sel.value.split("|");
+    info.innerHTML=`<span class="ac">${item}</span> · ${brand}<br>${cal} kcal · P ${p} · C ${c} · F ${f} <small>(full serving)</small>`;
+    if(addBtn) addBtn.style.display="";
+  });
+  wrap.querySelectorAll("button[data-addrest-from]").forEach(b=>b.onclick=()=>{
+    const sel=wrap.querySelector(`select[data-rest="${b.dataset.addrestFrom}"]`);
+    if(!sel||!sel.value) return;
+    const [item,brand,cal,p,c,f]=sel.value.split("|");
+    addRestaurantToSlot(item,brand,cal,p,c,f,b);
+  });
+}
+function renderEatingOut(){
+  const wrap=document.getElementById("eatingOut"); wrap.innerHTML="";
+  const brands=[...new Set(MEALS.map(m=>m.brand))];
+  const brandOpts=brands.map(b=>`<option value="${b}">${b}</option>`).join("");
+  wrap.innerHTML=`<div class="pmeal">
+    <div class="pmeal-h"><div class="name">🍔 Eating-out guide</div>
+      <div class="mac">Pick a restaurant, then see its meals & macros. Tap ＋ Add to log one (1 full serving).</div></div>
+    <div style="padding:12px;">
+      <select id="brandPick" style="width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px;font-size:13px;font-family:inherit;">
+        <option value="">— pick a restaurant —</option>${brandOpts}
+      </select>
+    </div>
+    <div id="brandItems"></div>
+  </div>`;
+  document.getElementById("brandPick").onchange=function(){
+    const box=document.getElementById("brandItems");
+    if(!this.value){box.innerHTML="";return;}
+    const items=MEALS.filter(m=>m.brand===this.value).sort((a,b)=>(b.protein/b.cal)-(a.protein/a.cal));
+    let rows=items.map((r)=>{
+      const ratio=r.protein/r.cal*100;
+      const col=ratio>=9?"var(--ok)":(ratio>=6?"var(--c)":"var(--over)");
+      return `<div class="prow">
+        <div class="pcell left">
+          <div class="fn">${r.item}</div>
+          <div class="kc">${r.cal} kcal · P${r.protein} C${r.carb} F${r.fat}</div>
+          <button class="addbtn" data-eo="${r.item}|${r.brand}|${r.cal}|${r.protein}|${r.carb}|${r.fat}">＋ Add</button>
+        </div>
+        <div class="pcell"><div class="altinfo"><span style="color:${col};font-weight:700;">${ratio.toFixed(1)}</span> g protein /100 kcal</div></div>
+      </div>`;
+    }).join("");
+    box.innerHTML=`<div class="ptbl"><div class="ptbl-head"><div>Item</div><div>Protein density</div></div>${rows}</div>`;
+    box.querySelectorAll("button[data-eo]").forEach(b=>b.onclick=()=>{
+      const [item,brand,cal,p,c,f]=b.dataset.eo.split("|");
+      addRestaurantToSlot(item,brand,cal,p,c,f,b);
+    });
+  };
+}
+function switchView(v){
+  const log=v==="log";
+  document.getElementById("logView").style.display=log?"":"none";
+  document.getElementById("planView").style.display=log?"none":"";
+  document.getElementById("tabLog").classList.toggle("on",log);
+  document.getElementById("tabPlan").classList.toggle("on",!log);
+  if(!log){ renderPlanPicker(); renderPlan(); renderEatingOut(); }
+}
+document.getElementById("tabLog").onclick=()=>switchView("log");
+document.getElementById("tabPlan").onclick=()=>switchView("plan");
+
 document.getElementById("calTgt").textContent=TARGET.cal;
 document.getElementById("pTgt").textContent=Math.round(TARGET.protein);
 document.getElementById("cTgt").textContent=TARGET.carb;
@@ -526,6 +1016,7 @@ document.getElementById("dateSel").value=curDate;
 updateCopyUI();
 render();
 renderSupps();
+
 </script>
 </body>
 </html>
