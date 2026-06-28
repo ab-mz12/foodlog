@@ -103,6 +103,24 @@
   .supp .nm{font-size:14px;font-weight:600;}
   .supp.done .nm{text-decoration:line-through;color:var(--muted);}
   .supp .dose{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5;}
+  /* Custom food */
+  .customadd{width:calc(100% - 28px);margin:10px 14px 0;background:var(--accent2);color:#fff;border:none;
+    border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .cform{padding:14px;border-top:1px solid var(--line);background:var(--card2);display:none;}
+  .cform.on{display:block;}
+  .cform input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:10px;font-size:14px;font-family:inherit;margin-bottom:8px;}
+  .cform .crow{display:flex;gap:8px;}
+  .cform .crow input{flex:1;}
+  .cform .basis{display:flex;gap:8px;margin:4px 0 10px;}
+  .cform .basis button{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--muted);
+    border-radius:8px;padding:9px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+  .cform .basis button.on{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700;}
+  .cform .crow2{display:flex;gap:8px;}
+  .cform .crow2 button{flex:1;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .cform .save2{background:var(--accent);color:#111;}
+  .cform .cancel2{background:var(--card);color:var(--muted);border:1px solid var(--line);}
+  .frow .del{color:#ff6b6b;background:none;border:none;font-size:15px;cursor:pointer;padding:0 6px;}
   /* View tabs */
   .viewtabs{display:flex;gap:8px;margin:4px 4px 14px;}
   .viewtab{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--muted);
@@ -225,6 +243,27 @@
         <button class="btn" id="closeModal">Close ✕</button>
       </div>
       <div class="search"><input type="text" id="searchBox" placeholder="Search food…"></div>
+      <button class="customadd" id="customAddBtn">＋ Custom food</button>
+      <div class="cform" id="cform">
+        <input type="text" id="cfName" placeholder="Name (e.g. My protein shake)">
+        <div class="crow">
+          <input type="number" id="cfCal" inputmode="decimal" placeholder="Calories">
+          <input type="number" id="cfP" inputmode="decimal" placeholder="Protein g">
+        </div>
+        <div class="crow">
+          <input type="number" id="cfC" inputmode="decimal" placeholder="Carb g">
+          <input type="number" id="cfF" inputmode="decimal" placeholder="Fat g">
+        </div>
+        <div class="basis">
+          <button id="cfWhole" class="on">Whole item / serving</button>
+          <button id="cfPerAmt">Per amount (g)</button>
+        </div>
+        <input type="number" id="cfAmt" inputmode="decimal" placeholder="…the macros above are for this many grams (e.g. 100)" style="display:none;">
+        <div class="crow2">
+          <button class="cancel2" id="cfCancel">Cancel</button>
+          <button class="save2" id="cfSave">Save food</button>
+        </div>
+      </div>
       <div class="tabs" id="catTabs"></div>
       <div class="list" id="foodList"></div>
       <div class="qty" id="qtyPane" style="display:none;">
@@ -296,6 +335,10 @@ const INGREDIENTS = [
 {cat:"دهون",name:"جبنة فيتا",unit:"g",protein:0.19,carb:0.05,fat:0.19,cal:2.67},
 {cat:"دهون",name:"حليب اللوز",unit:"g",protein:0.004,carb:0.006,fat:0.012,cal:0.148}
 ];
+/* ---------- CUSTOM FOODS (user-added, saved under customfoods_abdullah) ---------- */
+function loadCustom(){try{return JSON.parse(localStorage.getItem("customfoods_abdullah")||"[]");}catch(e){return [];}}
+function saveCustom(){localStorage.setItem("customfoods_abdullah",JSON.stringify(CUSTOM));}
+let CUSTOM = loadCustom();
 const MEALS = [
 {brand:"برجرايزر",item:"كلاسيك برجر تشكن مشوي",cal:495,protein:38,carb:55,fat:13},
 {brand:"برجرايزر",item:"برجر ميلتايززر لحم",cal:514,protein:30,carb:37,fat:27},
@@ -613,12 +656,14 @@ function openModal(mi){
   document.getElementById("qtyPane").style.display="none";
   document.getElementById("searchBox").value="";
   activeCat="all";
+  var _cf=document.getElementById("cform"); if(_cf) _cf.classList.remove("on");
   buildTabs(); renderFoodList();
   document.getElementById("modal").classList.add("on");
 }
 function closeModal(){document.getElementById("modal").classList.remove("on");}
 const CATS=[
   {k:"all",l:"All"},
+  {k:"custom",l:"My Foods ⭐"},
   {k:"بروتين",l:"Protein"},
   {k:"كارب",l:"Carb"},
   {k:"دهون",l:"Fat"},
@@ -640,21 +685,34 @@ function renderFoodList(){
   let rows=[];
   if(activeCat==="مطاعم"){
     rows=MEALS.map(m=>({type:"meal",...m}));
+  }else if(activeCat==="custom"){
+    rows=CUSTOM.map((m,ci)=>({type:"custom",ci,...m}));
   }else if(activeCat==="all"){
-    rows=INGREDIENTS.map(i=>({type:"ing",...i})).concat(MEALS.map(m=>({type:"meal",...m})));
+    rows=CUSTOM.map((m,ci)=>({type:"custom",ci,...m}))
+      .concat(INGREDIENTS.map(i=>({type:"ing",...i})))
+      .concat(MEALS.map(m=>({type:"meal",...m})));
   }else{
     rows=INGREDIENTS.filter(i=>i.cat===activeCat).map(i=>({type:"ing",...i}));
   }
   if(q) rows=rows.filter(r=>(r.name||r.item||"").includes(q)||(r.brand||"").includes(q));
   rows.forEach(r=>{
     const el=document.createElement("div");el.className="frow";
-    if(r.type==="ing"){
+    if(r.type==="custom"){
+      const ref=r.refAmt||100;
+      const basis=r.per100?("per "+ref+"g"):"per serving";
+      const showCal=r.per100?r1(r.cal*ref):r1(r.cal);
+      el.innerHTML=`<div class="fn">${r.name}<small>${basis} · ${showCal} kcal</small></div><button class="del" data-delc="${r.ci}" title="delete">🗑</button>`;
+    }else if(r.type==="ing"){
       el.innerHTML=`<div class="fn">${r.name}<small>per ${r.unit==='حبة'?'piece':'100'+r.unit} · ${r1((r.unit==='حبة'?r.cal:r.cal*100))} kcal</small></div><div class="fk">${r.cat}</div>`;
     }else{
       el.innerHTML=`<div class="fn">${r.item}<small>${r.brand} · full serving</small></div><div class="fk">${r.cal} kcal</div>`;
     }
     el.onclick=()=>selectFood(r);
     list.appendChild(el);
+  });
+  list.querySelectorAll("button[data-delc]").forEach(b=>b.onclick=(e)=>{
+    e.stopPropagation();
+    if(confirm("Delete this custom food?")){ CUSTOM.splice(+b.dataset.delc,1); saveCustom(); renderFoodList(); }
   });
   if(rows.length===0) list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted)">No results</div>';
 }
@@ -664,7 +722,13 @@ function selectFood(r){
   const qin=document.getElementById("qtyInput");
   const unitEl=document.getElementById("qtyUnit");
   const quick=document.getElementById("quickBtns");
-  if(r.type==="meal"){
+  if(r.type==="custom"){
+    document.getElementById("pickedName").innerHTML=`${r.name} <small>(My Foods)</small>`;
+    if(r.per100){ unitEl.textContent="g"; qin.value=100; qin.step="10";
+      quick.innerHTML=["30","50","100","150","200"].map(v=>`<button data-q="${v}">${v}</button>`).join(""); }
+    else { unitEl.textContent="serving"; qin.value=1; qin.step="0.5";
+      quick.innerHTML=["0.5","1","1.5","2"].map(v=>`<button data-q="${v}">${v}</button>`).join(""); }
+  }else if(r.type==="meal"){
     document.getElementById("pickedName").innerHTML=`${r.item} <small>${r.brand}</small>`;
     unitEl.textContent="serving";
     qin.value=1;qin.step="0.5";
@@ -697,6 +761,7 @@ function saveItem(){
   const m=calc(picked,qty);
   let name,label;
   if(picked.type==="meal"){name=picked.item+" ("+picked.brand+")";label=qty+" serving";}
+  else if(picked.type==="custom"){name=picked.name;label=qty+" "+(picked.per100?"g":"serving");}
   else{name=picked.name;label=qty+" "+(picked.unit==="حبة"?"piece":picked.unit);}
   dayData()[pickTarget].push({name,qtyLabel:label,...m});
   openMeals[pickTarget]=true;
@@ -706,6 +771,34 @@ document.getElementById("closeModal").onclick=closeModal;
 document.getElementById("modal").onclick=(e)=>{if(e.target.id==="modal")closeModal();};
 document.getElementById("searchBox").oninput=renderFoodList;
 document.getElementById("saveItem").onclick=saveItem;
+/* custom food form */
+let cfPerAmount=false;
+function cfReset(){document.getElementById("cfName").value="";["cfCal","cfP","cfC","cfF","cfAmt"].forEach(id=>document.getElementById(id).value="");
+  cfPerAmount=false;document.getElementById("cfWhole").classList.add("on");document.getElementById("cfPerAmt").classList.remove("on");document.getElementById("cfAmt").style.display="none";}
+document.getElementById("customAddBtn").onclick=()=>{const f=document.getElementById("cform");f.classList.toggle("on");if(f.classList.contains("on"))document.getElementById("cfName").focus();};
+document.getElementById("cfWhole").onclick=()=>{cfPerAmount=false;document.getElementById("cfWhole").classList.add("on");document.getElementById("cfPerAmt").classList.remove("on");document.getElementById("cfAmt").style.display="none";};
+document.getElementById("cfPerAmt").onclick=()=>{cfPerAmount=true;document.getElementById("cfPerAmt").classList.add("on");document.getElementById("cfWhole").classList.remove("on");document.getElementById("cfAmt").style.display="";document.getElementById("cfAmt").focus();};
+document.getElementById("cfCancel").onclick=()=>{document.getElementById("cform").classList.remove("on");cfReset();};
+document.getElementById("cfSave").onclick=()=>{
+  const name=(document.getElementById("cfName").value||"").trim();
+  const cal=parseFloat(document.getElementById("cfCal").value)||0;
+  const p=parseFloat(document.getElementById("cfP").value)||0;
+  const c=parseFloat(document.getElementById("cfC").value)||0;
+  const f=parseFloat(document.getElementById("cfF").value)||0;
+  if(!name){alert("Please enter a name.");return;}
+  if(cal<=0&&p<=0&&c<=0&&f<=0){alert("Please enter at least one macro.");return;}
+  let div=1, refAmt=0;
+  if(cfPerAmount){
+    refAmt=parseFloat(document.getElementById("cfAmt").value)||0;
+    if(refAmt<=0){alert("Enter how many grams the macros are for (e.g. 100).");return;}
+    div=refAmt;
+  }
+  /* store per-gram if per-amount (cal/refAmt), or whole if serving. calc() multiplies by qty. */
+  CUSTOM.push({name, per100:cfPerAmount, refAmt:refAmt, cal:cal/div, protein:p/div, carb:c/div, fat:f/div});
+  saveCustom();
+  document.getElementById("cform").classList.remove("on"); cfReset();
+  activeCat="custom"; buildTabs(); renderFoodList();
+};
 function addDays(dateStr,n){const [y,m,d]=dateStr.split("-").map(Number);const dt=new Date(y,m-1,d+n);
   const yy=dt.getFullYear();const mm=String(dt.getMonth()+1).padStart(2,"0");const dd=String(dt.getDate()).padStart(2,"0");
   return `${yy}-${mm}-${dd}`;}
