@@ -121,6 +121,18 @@
   .cform .save2{background:var(--accent);color:#111;}
   .cform .cancel2{background:var(--card);color:var(--muted);border:1px solid var(--line);}
   .frow .del{color:#ff6b6b;background:none;border:none;font-size:15px;cursor:pointer;padding:0 6px;}
+  /* Slot picker popup */
+  #slotPick{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:150;}
+  #slotPick.on{display:flex;}
+  #slotPick .box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;width:88%;max-width:360px;}
+  #slotPick h4{margin:0 0 4px;font-size:16px;}
+  #slotPick .hint{color:var(--muted);font-size:12px;margin:0 0 14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #slotPick .slots{display:flex;flex-direction:column;gap:8px;}
+  #slotPick .slots button{background:var(--card2);border:1px solid var(--line);color:var(--txt);
+    border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;text-align:start;}
+  #slotPick .slots button:active{transform:scale(.98);background:var(--accent);color:#111;}
+  #slotPick .cancel{width:100%;margin-top:12px;background:transparent;border:1px solid var(--line);color:var(--muted);
+    border-radius:12px;padding:11px;font-size:14px;cursor:pointer;font-family:inherit;}
   /* View tabs */
   .viewtabs{display:flex;gap:8px;margin:4px 4px 14px;}
   .viewtab{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--muted);
@@ -235,6 +247,15 @@
     Your log saves automatically on this device/browser.<br>
     To add it as an app on iPhone: Share ⬆️ → "Add to Home Screen".
   </p>
+
+  <div id="slotPick">
+    <div class="box">
+      <h4>Add to which meal?</h4>
+      <p class="hint" id="slotHint"></p>
+      <div class="slots" id="slotBtns"></div>
+      <button class="cancel" id="slotCancel">Cancel</button>
+    </div>
+  </div>
 
   <div class="modal" id="modal">
     <div class="sheet">
@@ -957,26 +978,33 @@ function logFood(mi,name,qty){
   dayData()[mi].push({name,qtyLabel:unitLabel(name,qty),...m});
   openMeals[mi]=true; save();
 }
-function askSlot(){
-  const msg="Add to which meal?\n1 = Meal 1\n2 = Meal 2\n3 = Meal 3\n4 = Snack\n5 = Snack 2";
-  const a=prompt(msg,"1");
-  if(a===null) return null;
-  const n=parseInt(a,10);
-  if(n>=1&&n<=5) return n-1;
-  alert("Please type a number from 1 to 5."); return null;
+function askSlot(hintText, cb){
+  const wrap=document.getElementById("slotPick");
+  const list=document.getElementById("slotBtns");
+  document.getElementById("slotHint").textContent=hintText?("Adding: "+hintText):"";
+  list.innerHTML="";
+  MEAL_NAMES.forEach((nm,i)=>{
+    const b=document.createElement("button");
+    b.textContent=nm;
+    b.onclick=()=>{ wrap.classList.remove("on"); cb(i); };
+    list.appendChild(b);
+  });
+  wrap.classList.add("on");
 }
+document.getElementById("slotCancel").onclick=()=>document.getElementById("slotPick").classList.remove("on");
+document.getElementById("slotPick").onclick=(e)=>{if(e.target.id==="slotPick")document.getElementById("slotPick").classList.remove("on");};
 function flashBtn(btn){
   const old=btn.textContent; btn.textContent="✓ Added"; btn.classList.add("flash");
   setTimeout(()=>{btn.textContent=old; btn.classList.remove("flash");},1100);
 }
 function addFoodToSlot(name,qty,btn){
-  const mi=askSlot(); if(mi===null) return;
-  logFood(mi,name,qty); render(); flashBtn(btn);
+  askSlot(name, (mi)=>{ logFood(mi,name,qty); render(); flashBtn(btn); });
 }
 function addRestaurantToSlot(item,brand,cal,p,c,f,btn){
-  const mi=askSlot(); if(mi===null) return;
-  dayData()[mi].push({name:item+" ("+brand+")",qtyLabel:"1 serving",cal:+cal,protein:+p,carb:+c,fat:+f});
-  openMeals[mi]=true; save(); render(); flashBtn(btn);
+  askSlot(item+" ("+brand+")", (mi)=>{
+    dayData()[mi].push({name:item+" ("+brand+")",qtyLabel:"1 serving",cal:+cal,protein:+p,carb:+c,fat:+f});
+    openMeals[mi]=true; save(); render(); flashBtn(btn);
+  });
 }
 function renderPlanPicker(){
   const pp=document.getElementById("planPick"); pp.innerHTML="";
