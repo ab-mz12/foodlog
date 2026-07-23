@@ -9,9 +9,10 @@
 <title>Abdullah's Daily Food Log</title>
 <style>
   :root{
-    --bg:#0b0b0f; --card:#16161d; --card2:#1e1e28; --line:#2a2a36;
-    --txt:#f4f4f6; --muted:#9a9aa8; --accent:#c9f73a; --accent2:#a855f7;
-    --p:#3b82f6; --c:#f59e0b; --f:#ef4444; --cal:#c9f73a; --ok:#22c55e; --over:#ef4444;
+    --bg:#111114; --card:#1a1a1e; --card2:#202026; --line:#2a2a30;
+    --txt:#f4f4f6; --muted:#8a8a92; --accent:#d4af7a; --accent2:#c8a06a;
+    --p:#7fb2ff; --c:#e6b45a; --f:#e88fa0; --cal:#d4af7a; --ok:#7ad19a; --over:#e26d6d;
+    --ringtrack:#26262c;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   body{margin:0;background:var(--bg);color:var(--txt);
@@ -26,20 +27,19 @@
     border-radius:10px;padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;}
   .btn:active{transform:scale(.97);}
   .btn.danger{color:#ff6b6b;}
-  .targets{background:linear-gradient(135deg,#1a1a24,#14141c);border:1px solid var(--line);
-    border-radius:16px;padding:14px;margin-bottom:14px;}
-  .tline{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;}
-  .tline .big{font-size:26px;font-weight:700;}
-  .tline .lab{color:var(--muted);font-size:12px;}
-  .bar{height:8px;background:#2a2a36;border-radius:99px;overflow:hidden;margin:6px 0 12px;}
-  .bar > i{display:block;height:100%;border-radius:99px;transition:width .3s;}
-  .macros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-  .macro{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;}
-  .macro .v{font-size:16px;font-weight:700;}
-  .macro .l{font-size:10px;color:var(--muted);margin-top:2px;}
-  .macro .t{font-size:10px;color:var(--muted);}
-  .mbar{height:5px;background:#2a2a36;border-radius:99px;overflow:hidden;margin-top:5px;}
-  .mbar>i{display:block;height:100%;}
+  .targets{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin-bottom:14px;}
+  .ringwrap{display:flex;align-items:center;gap:18px;}
+  .rings{flex-shrink:0;}
+  .rings .rt{fill:none;stroke:var(--ringtrack);stroke-width:8;}
+  .rings .rp{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .5s ease;}
+  .ringinfo{flex:1;min-width:0;}
+  .rcal .big{font-size:28px;font-weight:800;color:var(--txt);}
+  .rcal .lab{font-size:13px;color:var(--muted);font-weight:600;}
+  .rcalsub{font-size:11px;color:var(--muted);margin-bottom:10px;}
+  .mlegend{display:flex;flex-direction:column;gap:6px;}
+  .mrow{font-size:12.5px;color:var(--txt);display:flex;align-items:center;gap:7px;}
+  .mrow b{font-weight:800;}
+  .mrow .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
   .meal{background:var(--card);border:1px solid var(--line);border-radius:16px;
     margin-bottom:12px;overflow:hidden;}
   .meal-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;}
@@ -146,7 +146,7 @@
   .planbtn.on{background:var(--accent2);color:#fff;border-color:var(--accent2);}
   .plandesc{color:var(--accent2);font-size:12px;margin:0 4px 14px;line-height:1.6;}
   .pmeal{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:14px;overflow:hidden;}
-  .pmeal-h{padding:11px 14px;background:linear-gradient(135deg,#1a1a24,#14141c);border-bottom:1px solid var(--line);}
+  .pmeal-h{padding:11px 14px;background:var(--card2);border-bottom:1px solid var(--line);}
   .pmeal-h .name{font-size:15px;font-weight:600;}
   .pmeal-h .mac{font-size:11px;color:var(--muted);margin-top:3px;}
   .ptbl{width:100%;}
@@ -164,7 +164,7 @@
     border-radius:8px;padding:7px;font-size:12.5px;font-family:inherit;margin-bottom:6px;}
   .pcell .altinfo{font-size:10.5px;color:var(--muted);line-height:1.5;}
   .pcell .altinfo .ac{color:var(--accent);font-weight:600;}
-  .plan-foot{background:linear-gradient(135deg,#1a1a24,#14141c);border:1px solid var(--line);
+  .plan-foot{background:var(--card2);border:1px solid var(--line);
     border-radius:16px;padding:14px;margin-bottom:14px;text-align:center;}
   .plan-foot .big{font-size:22px;font-weight:700;color:var(--accent);}
   .plan-foot .lab{font-size:12px;color:var(--muted);margin-top:4px;}
@@ -197,29 +197,25 @@
 
   <div id="logView">
   <div class="targets">
-    <div class="tline">
-      <div><span class="big" id="calNow">0</span> <span class="lab">/ <span id="calTgt">2272</span> kcal</span></div>
-      <div class="lab" id="calLeft"></div>
-    </div>
-    <div class="bar"><i id="calBar" style="width:0;background:var(--cal)"></i></div>
-    <div class="macros">
-      <div class="macro">
-        <div class="v" style="color:var(--p)"><span id="pNow">0</span></div>
-        <div class="l">Protein</div>
-        <div class="t">/ <span id="pTgt">119</span> g</div>
-        <div class="mbar"><i id="pBar" style="width:0;background:var(--p)"></i></div>
-      </div>
-      <div class="macro">
-        <div class="v" style="color:var(--c)"><span id="cNow">0</span></div>
-        <div class="l">Carb</div>
-        <div class="t">/ <span id="cTgt">317</span> g</div>
-        <div class="mbar"><i id="cBar" style="width:0;background:var(--c)"></i></div>
-      </div>
-      <div class="macro">
-        <div class="v" style="color:var(--f)"><span id="fNow">0</span></div>
-        <div class="l">Fat</div>
-        <div class="t">/ <span id="fTgt">59</span> g</div>
-        <div class="mbar"><i id="fBar" style="width:0;background:var(--f)"></i></div>
+    <div class="ringwrap">
+      <svg class="rings" viewBox="0 0 132 132" width="132" height="132">
+        <circle class="rt" cx="66" cy="66" r="58"/>
+        <circle id="ringCal" class="rp" cx="66" cy="66" r="58" stroke="var(--cal)" transform="rotate(-90 66 66)"/>
+        <circle class="rt" cx="66" cy="66" r="45"/>
+        <circle id="ringP" class="rp" cx="66" cy="66" r="45" stroke="var(--p)" transform="rotate(-90 66 66)"/>
+        <circle class="rt" cx="66" cy="66" r="32"/>
+        <circle id="ringC" class="rp" cx="66" cy="66" r="32" stroke="var(--c)" transform="rotate(-90 66 66)"/>
+        <circle class="rt" cx="66" cy="66" r="19"/>
+        <circle id="ringF" class="rp" cx="66" cy="66" r="19" stroke="var(--f)" transform="rotate(-90 66 66)"/>
+      </svg>
+      <div class="ringinfo">
+        <div class="rcal"><span class="big" id="calNow">0</span><span class="lab"> / <span id="calTgt">2272</span></span></div>
+        <div class="rcalsub" id="calLeft">kcal</div>
+        <div class="mlegend">
+          <div class="mrow"><span class="dot" style="background:var(--p)"></span>Protein <b id="pNow">0</b>/<span id="pTgt">119</span>g</div>
+          <div class="mrow"><span class="dot" style="background:var(--c)"></span>Carb <b id="cNow">0</b>/<span id="cTgt">317</span>g</div>
+          <div class="mrow"><span class="dot" style="background:var(--f)"></span>Fat <b id="fNow">0</b>/<span id="fTgt">59</span>g</div>
+        </div>
       </div>
     </div>
   </div>
@@ -590,7 +586,7 @@ const MEALS = [
 {brand:"ماكدونالدز",item:"تشيكن ماك ماكدونالدز",cal:860,protein:47,carb:69,fat:44}
 ];
 const TARGET = {cal:2272, protein:118.8, carb:317, fat:58.7};
-const MEAL_NAMES = ["Meal 1","Meal 2","Meal 3","Snack","Snack 2"];
+const MEAL_NAMES = ["🍳 Meal 1","🍗 Meal 2","🍽️ Meal 3","🥤 Snack","🍎 Snack 2"];
 let store = load();
 let curDate = todayStr();
 let pickTarget = null;
@@ -649,12 +645,12 @@ function render(){
   set("calNow",r1(tot.cal)); set("pNow",r1(tot.protein));
   set("cNow",r1(tot.carb)); set("fNow",r1(tot.fat));
   const left = TARGET.cal - tot.cal;
-  document.getElementById("calLeft").textContent = left>=0 ? `${r1(left)} left` : `${r1(-left)} over`;
+  document.getElementById("calLeft").textContent = left>=0 ? `kcal · ${r1(left)} left` : `kcal · ${r1(-left)} over`;
   document.getElementById("calLeft").style.color = left>=0 ? "var(--muted)" : "var(--over)";
-  bar("calBar",tot.cal,TARGET.cal);
-  bar("pBar",tot.protein,TARGET.protein);
-  bar("cBar",tot.carb,TARGET.carb);
-  bar("fBar",tot.fat,TARGET.fat);
+  ring("ringCal",tot.cal,TARGET.cal,58);
+  ring("ringP",tot.protein,TARGET.protein,45);
+  ring("ringC",tot.carb,TARGET.carb,32);
+  ring("ringF",tot.fat,TARGET.fat,19);
   document.querySelectorAll(".meal-h").forEach(h=>h.onclick=()=>{
     const mi=+h.dataset.mi; openMeals[mi]=!(openMeals[mi] ?? (day[mi].length>0)); render();});
   document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>openModal(+b.dataset.add));
@@ -665,10 +661,12 @@ function render(){
   save();
 }
 function set(id,v){document.getElementById(id).textContent=v;}
-function bar(id,now,tgt){
-  const el=document.getElementById(id);const pct=Math.min(100,(now/tgt)*100);
-  el.style.width=pct+"%";
-  el.style.background = now>tgt*1.05 ? "var(--over)" : el.style.background;
+function ring(id,now,tgt,r){
+  const el=document.getElementById(id);
+  const C=2*Math.PI*r;
+  const pct=Math.max(0,Math.min(1, now/tgt));
+  el.style.strokeDasharray=C;
+  el.style.strokeDashoffset=C*(1-pct);
 }
 let activeCat = "all";
 function openModal(mi){
@@ -683,11 +681,11 @@ function openModal(mi){
 }
 function closeModal(){document.getElementById("modal").classList.remove("on");}
 const CATS=[
-  {k:"all",l:"All"},
+  {k:"all",l:"🗂️ All"},
   {k:"custom",l:"My Foods ⭐"},
-  {k:"بروتين",l:"Protein"},
-  {k:"كارب",l:"Carb"},
-  {k:"دهون",l:"Fat"},
+  {k:"بروتين",l:"🥩 Protein"},
+  {k:"كارب",l:"🍚 Carb"},
+  {k:"دهون",l:"🥑 Fat"},
   {k:"فواكه",l:"Fruit 🍎"},
   {k:"خضار",l:"Veg 🥦"},
   {k:"مطاعم",l:"Restaurants 🍔"}
