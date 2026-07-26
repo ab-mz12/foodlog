@@ -706,7 +706,7 @@ let curDate = todayStr();
 let pickTarget = null;
 let picked = null;
 let openMeals = {};
-function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
+function todayStr(){const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,"0");const dd=String(d.getDate()).padStart(2,"0");return y+"-"+m+"-"+dd;}
 /* Recovery + migration: pull any days from the old shared "foodlog" key into the unique
    key. MERGE only — never overwrites a day that already has food in the new key. Restores
    data lost if an earlier empty save blocked the first migration. */
@@ -1365,16 +1365,18 @@ function dayTotals(dateStr){
   d.forEach(meal=>meal.forEach(it=>{t.cal+=it.cal;t.protein+=it.protein;t.carb+=it.carb;t.fat+=it.fat;}));
   return t;
 }
+function hitProtein(dateStr){ return dayTotals(dateStr).protein >= (TARGET.protein-0.5); }
 function proteinStreak(){
-  // current consecutive days (ending today) hitting protein target
+  // current run ending today; today counts once hit, but an un-logged today
+  // does NOT reset the streak (it's still in progress)
   let cur=0, d=todayStr();
-  while(true){ const t=dayTotals(d); if(t.protein>=TARGET.protein){cur++; d=addDays(d,-1);} else break; }
-  // best streak over all logged days
+  if(!hitProtein(d)) d=addDays(d,-1);       // skip in-progress today
+  while(hitProtein(d)){ cur++; d=addDays(d,-1); }
+  // best consecutive streak over all logged days
   const days=Object.keys(store).sort();
   let best=0,run=0,prev=null;
   days.forEach(day=>{
-    const hit=dayTotals(day).protein>=TARGET.protein;
-    if(hit){ if(prev && addDays(prev,1)===day) run++; else run=1; best=Math.max(best,run); prev=day; }
+    if(hitProtein(day)){ if(prev && addDays(prev,1)===day) run++; else run=1; best=Math.max(best,run); prev=day; }
     else { run=0; prev=null; }
   });
   return {cur, best:Math.max(best,cur)};
