@@ -180,6 +180,36 @@
   .stile{flex:1;background:var(--card2);border-radius:14px;padding:14px;text-align:center;}
   .sbig{font-size:26px;font-weight:800;color:var(--accent);}
   .ssub{font-size:11px;color:var(--muted);line-height:1.4;}
+  /* Workout */
+  .wkbar{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 4px;-webkit-overflow-scrolling:touch;}
+  .wkchip{white-space:nowrap;background:var(--card2);border:1px solid var(--line);color:var(--muted);
+    border-radius:99px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:inherit;}
+  .wkchip.on{background:var(--accent);color:#111;border-color:var(--accent);}
+  .wkadd{background:var(--accent);color:#111;border:none;border-radius:10px;padding:8px 13px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}
+  .wkadd-full{width:calc(100% - 8px);margin:2px 4px 24px;background:var(--card2);color:var(--accent);
+    border:1px dashed var(--accent2);border-radius:14px;padding:14px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;}
+  .wkweekmeta{display:flex;gap:8px;align-items:center;margin-top:8px;}
+  .wkmini{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:2px 4px;}
+  .daycard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 4px 14px;}
+  .dayhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .dayhead .dn{font-size:16px;font-weight:800;}
+  .excard{background:var(--card2);border:1px solid var(--line);border-radius:13px;padding:12px;margin-top:10px;}
+  .exhead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .exname{font-size:14.5px;font-weight:700;line-height:1.3;}
+  .extgt{font-size:11px;color:var(--muted);margin-top:2px;cursor:pointer;}
+  .extgt u{color:var(--accent2);}
+  .prbadge{background:linear-gradient(135deg,#2a2113,#1c1710);border:1px solid var(--accent2);
+    color:var(--accent);font-size:11px;font-weight:800;padding:5px 9px;border-radius:9px;white-space:nowrap;}
+  .setrow{display:flex;align-items:center;gap:8px;margin-top:8px;}
+  .setrow .sidx{font-size:11px;color:var(--muted);min-width:38px;}
+  .setrow input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:9px;font-size:15px;text-align:center;font-family:inherit;}
+  .setrow .u{font-size:11px;color:var(--muted);min-width:26px;}
+  .setrow .srm{background:none;border:none;color:var(--over);font-size:15px;cursor:pointer;padding:2px 4px;}
+  .exact{display:flex;gap:10px;margin-top:10px;}
+  .exact button{background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;padding:2px;}
+  .exact .exdel{color:var(--over);}
+  .wkempty{text-align:center;color:var(--muted);font-size:14px;padding:30px 16px;line-height:1.7;}
   .stbars{display:flex;align-items:flex-end;gap:7px;height:90px;margin-top:12px;}
   .stbars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;}
   .stbars .b i{width:100%;border-radius:5px 5px 0 0;display:block;}
@@ -346,6 +376,19 @@
     </div>
   </div>
 
+  <div id="workoutView" style="display:none;">
+    <div class="statcard">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="statlbl">💪 Workout</div>
+        <button id="wkNewWeek" class="wkadd">＋ New week</button>
+      </div>
+      <div id="wkWeekBar" class="wkbar"></div>
+      <div id="wkWeekMeta" class="wkweekmeta"></div>
+    </div>
+    <div id="wkDays"></div>
+    <button id="wkAddDay" class="wkadd-full" style="display:none;">＋ Add day</button>
+  </div>
+
   <p class="footer-note">
     Your log saves automatically on this device/browser.<br>
     To add it as an app on iPhone: Share ⬆️ → "Add to Home Screen".
@@ -354,6 +397,7 @@
   <nav class="bottomnav">
     <button class="bnav on" id="tabLog"><span class="bi">🏠</span><span class="bl">Home</span></button>
     <button class="bnav" id="tabPlan"><span class="bi">🍽️</span><span class="bl">Plan</span></button>
+    <button class="bnav" id="tabWorkout"><span class="bi">💪</span><span class="bl">Workout</span></button>
     <button class="bnav" id="tabStats"><span class="bi">📊</span><span class="bl">Stats</span></button>
     <button class="bnav" id="tabMore"><span class="bi">💊</span><span class="bl">More</span></button>
   </nav>
@@ -1540,24 +1584,139 @@ document.getElementById("wtMetaSave").onclick=()=>{
   renderWeight();
 };
 
+
+/* ---------- WORKOUT ---------- */
+function loadWorkout(){try{return JSON.parse(localStorage.getItem("workout_abdullah")||"null")||{weeks:[],active:null};}catch(e){return {weeks:[],active:null};}}
+function saveWorkout(){localStorage.setItem("workout_abdullah",JSON.stringify(WK));}
+let WK=loadWorkout();
+function wkuid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function wkActive(){return WK.weeks.find(w=>w.id===WK.active)||WK.weeks[WK.weeks.length-1]||null;}
+function wkFindDay(wk,id){return wk?wk.days.find(d=>d.id===id):null;}
+function wkFindEx(day,id){return day?day.exercises.find(e=>e.id===id):null;}
+function wkNorm(s){return (s||"").trim().toLowerCase();}
+function exercisePR(name){
+  const key=wkNorm(name); if(!key) return null;
+  let bw=0,br=0;
+  WK.weeks.forEach(w=>w.days.forEach(d=>d.exercises.forEach(e=>{
+    if(wkNorm(e.name)!==key) return;
+    (e.sets||[]).forEach(s=>{const w2=parseFloat(s.w)||0,r2=parseFloat(s.r)||0;
+      if(w2<=0) return;
+      if(w2>bw){bw=w2;br=r2;} else if(w2===bw && r2>br){br=r2;}
+    });
+  })));
+  return bw>0?{w:bw,r:br}:null;
+}
+function wkCopyStructure(src){
+  return src.days.map(d=>({id:wkuid(),name:d.name,exercises:d.exercises.map(e=>({
+    id:wkuid(),name:e.name,targetReps:e.targetReps,sets:(e.sets||[]).map(()=>({w:"",r:""}))
+  }))}));
+}
+function renderWorkout(){
+  const bar=document.getElementById("wkWeekBar");
+  const meta=document.getElementById("wkWeekMeta");
+  const daysEl=document.getElementById("wkDays");
+  const addDay=document.getElementById("wkAddDay");
+  if(!WK.weeks.length){
+    bar.innerHTML=""; meta.innerHTML="";
+    daysEl.innerHTML='<div class="wkempty">No weeks yet 🏋️<br>Tap <b>＋ New week</b> to start, then add your training days and exercises.</div>';
+    addDay.style.display="none"; return;
+  }
+  const act=wkActive(); WK.active=act.id;
+  bar.innerHTML=WK.weeks.map(w=>'<button class="wkchip'+(w.id===act.id?' on':'')+'" data-wksel="'+w.id+'">'+esc(w.name)+'</button>').join("");
+  bar.querySelectorAll("[data-wksel]").forEach(b=>b.onclick=()=>{WK.active=b.getAttribute("data-wksel");saveWorkout();renderWorkout();});
+  meta.innerHTML='<span style="flex:1;color:var(--muted);font-size:12px;">'+act.days.length+' day'+(act.days.length===1?'':'s')+'</span>'
+    +'<button class="wkmini" data-wkren>✏️ Rename</button><button class="wkmini" data-wkdel style="color:var(--over)">🗑️ Delete week</button>';
+  meta.querySelector("[data-wkren]").onclick=()=>{const n=prompt("Rename week:",act.name);if(n&&n.trim()){act.name=n.trim();saveWorkout();renderWorkout();}};
+  meta.querySelector("[data-wkdel]").onclick=()=>{if(!confirm("Delete \""+act.name+"\" and all its data?"))return;WK.weeks=WK.weeks.filter(w=>w.id!==act.id);WK.active=WK.weeks.length?WK.weeks[WK.weeks.length-1].id:null;saveWorkout();renderWorkout();};
+  // days
+  if(!act.days.length){
+    daysEl.innerHTML='<div class="wkempty">No days in this week yet.<br>Tap <b>＋ Add day</b> below.</div>';
+  } else {
+    daysEl.innerHTML=act.days.map(d=>{
+      const ex=d.exercises.map(e=>{
+        const pr=exercisePR(e.name);
+        const prHtml=pr?'<span class="prbadge">🏆 '+r1x(pr.w)+'kg × '+pr.r+'</span>':'<span class="prbadge" style="opacity:.5">🏆 —</span>';
+        const sets=(e.sets||[]).map((s,i)=>
+          '<div class="setrow"><span class="sidx">Set '+(i+1)+'</span>'
+          +'<input type="number" inputmode="decimal" step="0.5" placeholder="kg" value="'+(s.w!==undefined?s.w:"")+'" data-wkw="'+d.id+'|'+e.id+'|'+i+'">'
+          +'<span class="u">kg</span>'
+          +'<input type="number" inputmode="numeric" step="1" placeholder="reps" value="'+(s.r!==undefined?s.r:"")+'" data-wkr="'+d.id+'|'+e.id+'|'+i+'">'
+          +'<span class="u">reps</span>'
+          +'<button class="srm" data-wksrm="'+d.id+'|'+e.id+'|'+i+'">✕</button></div>'
+        ).join("");
+        return '<div class="excard">'
+          +'<div class="exhead"><div style="flex:1;"><div class="exname">'+esc(e.name)+'</div>'
+          +'<div class="extgt" data-wktgt="'+d.id+'|'+e.id+'">'+((e.sets||[]).length)+' × <u>'+esc(e.targetReps||"—")+'</u> reps · edit</div></div>'
+          +prHtml+'</div>'
+          +sets
+          +'<div class="exact"><button data-wkaddset="'+d.id+'|'+e.id+'">＋ Set</button>'
+          +'<button data-wkexren="'+d.id+'|'+e.id+'">✏️ Rename</button>'
+          +'<button class="exdel" data-wkexdel="'+d.id+'|'+e.id+'">🗑️ Delete</button></div>'
+          +'</div>';
+      }).join("");
+      return '<div class="daycard"><div class="dayhead"><div class="dn">'+esc(d.name)+'</div>'
+        +'<div><button class="wkmini" data-wkdren="'+d.id+'">✏️</button><button class="wkmini" data-wkddel="'+d.id+'" style="color:var(--over)">🗑️</button></div></div>'
+        +ex
+        +'<button class="wkmini" style="color:var(--accent);font-weight:800;margin-top:12px;font-size:13px;" data-wkaddex="'+d.id+'">＋ Add exercise</button>'
+        +'</div>';
+    }).join("");
+  }
+  addDay.style.display="";
+  wkBindDays(act);
+}
+function r1x(n){return (Math.round(n*10)/10).toString();}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function wkBindDays(act){
+  const q=(sel)=>document.querySelectorAll(sel);
+  q("[data-wkw]").forEach(inp=>inp.onchange=()=>{const [dd,ee,i]=inp.getAttribute("data-wkw").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e){e.sets[+i].w=inp.value;saveWorkout();renderWorkout();}});
+  q("[data-wkr]").forEach(inp=>inp.onchange=()=>{const [dd,ee,i]=inp.getAttribute("data-wkr").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e){e.sets[+i].r=inp.value;saveWorkout();renderWorkout();}});
+  q("[data-wksrm]").forEach(b=>b.onclick=()=>{const [dd,ee,i]=b.getAttribute("data-wksrm").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e&&e.sets.length>1){e.sets.splice(+i,1);saveWorkout();renderWorkout();}});
+  q("[data-wkaddset]").forEach(b=>b.onclick=()=>{const [dd,ee]=b.getAttribute("data-wkaddset").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e){e.sets.push({w:"",r:""});saveWorkout();renderWorkout();}});
+  q("[data-wktgt]").forEach(el=>el.onclick=()=>{const [dd,ee]=el.getAttribute("data-wktgt").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e){const n=prompt("Target reps (e.g. 8-10):",e.targetReps||"");if(n!==null){e.targetReps=n.trim();saveWorkout();renderWorkout();}}});
+  q("[data-wkexren]").forEach(b=>b.onclick=()=>{const [dd,ee]=b.getAttribute("data-wkexren").split("|");const e=wkFindEx(wkFindDay(act,dd),ee);if(e){const n=prompt("Rename exercise:",e.name);if(n&&n.trim()){e.name=n.trim();saveWorkout();renderWorkout();}}});
+  q("[data-wkexdel]").forEach(b=>b.onclick=()=>{const [dd,ee]=b.getAttribute("data-wkexdel").split("|");const day=wkFindDay(act,dd);if(day){const e=wkFindEx(day,ee);if(e&&confirm("Delete \""+e.name+"\"?")){day.exercises=day.exercises.filter(x=>x.id!==ee);saveWorkout();renderWorkout();}}});
+  q("[data-wkaddex]").forEach(b=>b.onclick=()=>{const dd=b.getAttribute("data-wkaddex");const day=wkFindDay(act,dd);if(!day)return;const n=prompt("Exercise name:");if(!n||!n.trim())return;const tr=prompt("Target reps (e.g. 8-10):","8-12")||"";day.exercises.push({id:wkuid(),name:n.trim(),targetReps:tr.trim(),sets:[{w:"",r:""},{w:"",r:""},{w:"",r:""}]});saveWorkout();renderWorkout();});
+  q("[data-wkdren]").forEach(b=>b.onclick=()=>{const dd=b.getAttribute("data-wkdren");const day=wkFindDay(act,dd);if(day){const n=prompt("Rename day:",day.name);if(n&&n.trim()){day.name=n.trim();saveWorkout();renderWorkout();}}});
+  q("[data-wkddel]").forEach(b=>b.onclick=()=>{const dd=b.getAttribute("data-wkddel");const day=wkFindDay(act,dd);if(day&&confirm("Delete day \""+day.name+"\"?")){act.days=act.days.filter(x=>x.id!==dd);saveWorkout();renderWorkout();}});
+}
+document.getElementById("wkNewWeek").onclick=()=>{
+  const prev=wkActive();
+  const def="Week "+(WK.weeks.length+1);
+  const name=prompt("Name this week:",def);
+  if(name===null)return;
+  const days=prev?wkCopyStructure(prev):[];
+  const wk={id:wkuid(),name:(name.trim()||def),days};
+  WK.weeks.push(wk);WK.active=wk.id;saveWorkout();renderWorkout();
+};
+document.getElementById("wkAddDay").onclick=()=>{
+  const act=wkActive();if(!act)return;
+  const n=prompt("Day name (e.g. Push, Legs, Day 1):");
+  if(!n||!n.trim())return;
+  act.days.push({id:wkuid(),name:n.trim(),exercises:[]});saveWorkout();renderWorkout();
+};
+
 function switchView(v){
   document.getElementById("logView").style.display=v==="log"?"":"none";
   document.getElementById("planView").style.display=v==="plan"?"":"none";
   document.getElementById("statsView").style.display=v==="stats"?"":"none";
   document.getElementById("moreView").style.display=v==="more"?"":"none";
+  document.getElementById("workoutView").style.display=v==="workout"?"":"none";
   document.getElementById("tabLog").classList.toggle("on",v==="log");
   document.getElementById("tabPlan").classList.toggle("on",v==="plan");
   document.getElementById("tabStats").classList.toggle("on",v==="stats");
   document.getElementById("tabMore").classList.toggle("on",v==="more");
+  document.getElementById("tabWorkout").classList.toggle("on",v==="workout");
   if(v==="plan"){ renderPlanPicker(); renderPlan(); renderEatingOut(); }
   if(v==="stats"){ renderStats(); }
   if(v==="more"){ renderSupps(); }
+  if(v==="workout"){ renderWorkout(); }
   window.scrollTo(0,0);
 }
 document.getElementById("tabLog").onclick=()=>switchView("log");
 document.getElementById("tabPlan").onclick=()=>switchView("plan");
 document.getElementById("tabStats").onclick=()=>switchView("stats");
 document.getElementById("tabMore").onclick=()=>switchView("more");
+document.getElementById("tabWorkout").onclick=()=>switchView("workout");
 
 document.getElementById("calTgt").textContent=TARGET.cal;
 document.getElementById("pTgt").textContent=Math.round(TARGET.protein);
