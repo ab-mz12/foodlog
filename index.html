@@ -210,6 +210,14 @@
   .exact button{background:none;border:none;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;padding:2px;}
   .exact .exdel{color:var(--over);}
   .wkempty{text-align:center;color:var(--muted);font-size:14px;padding:30px 16px;line-height:1.7;}
+  .wkdtabs{display:flex;gap:8px;overflow-x:auto;padding:10px 4px 2px;-webkit-overflow-scrolling:touch;}
+  .wkdtabs::-webkit-scrollbar{display:none;}
+  .wkdtab{white-space:nowrap;background:var(--card2);border:1px solid var(--line);color:var(--muted);
+    border-radius:99px;padding:8px 16px;font-size:13.5px;font-weight:700;cursor:pointer;flex-shrink:0;font-family:inherit;}
+  .wkdtab.on{background:var(--accent);color:#111;border-color:var(--accent);}
+  #wkDays{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;}
+  #wkDays::-webkit-scrollbar{display:none;}
+  .daypage{min-width:100%;box-sizing:border-box;scroll-snap-align:start;}
   .stbars{display:flex;align-items:flex-end;gap:7px;height:90px;margin-top:12px;}
   .stbars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;}
   .stbars .b i{width:100%;border-radius:5px 5px 0 0;display:block;}
@@ -385,6 +393,7 @@
       <div id="wkWeekBar" class="wkbar"></div>
       <div id="wkWeekMeta" class="wkweekmeta"></div>
     </div>
+    <div id="wkDayTabs" class="wkdtabs"></div>
     <div id="wkDays"></div>
     <button id="wkAddDay" class="wkadd-full" style="display:none;">＋ Add day</button>
   </div>
@@ -1589,6 +1598,8 @@ document.getElementById("wtMetaSave").onclick=()=>{
 function loadWorkout(){try{return JSON.parse(localStorage.getItem("workout_abdullah")||"null")||{weeks:[],active:null};}catch(e){return {weeks:[],active:null};}}
 function saveWorkout(){localStorage.setItem("workout_abdullah",JSON.stringify(WK));}
 let WK=loadWorkout();
+let wkDayIdx=0;
+function wkSetActiveTab(){const t=document.getElementById("wkDayTabs");if(!t)return;t.querySelectorAll(".wkdtab").forEach((b,i)=>b.classList.toggle("on",i===wkDayIdx));}
 function wkuid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function wkActive(){return WK.weeks.find(w=>w.id===WK.active)||WK.weeks[WK.weeks.length-1]||null;}
 function wkFindDay(wk,id){return wk?wk.days.find(d=>d.id===id):null;}
@@ -1623,15 +1634,20 @@ function renderWorkout(){
   }
   const act=wkActive(); WK.active=act.id;
   bar.innerHTML=WK.weeks.map(w=>'<button class="wkchip'+(w.id===act.id?' on':'')+'" data-wksel="'+w.id+'">'+esc(w.name)+'</button>').join("");
-  bar.querySelectorAll("[data-wksel]").forEach(b=>b.onclick=()=>{WK.active=b.getAttribute("data-wksel");saveWorkout();renderWorkout();});
+  bar.querySelectorAll("[data-wksel]").forEach(b=>b.onclick=()=>{WK.active=b.getAttribute("data-wksel");wkDayIdx=0;saveWorkout();renderWorkout();});
   meta.innerHTML='<span style="flex:1;color:var(--muted);font-size:12px;">'+act.days.length+' day'+(act.days.length===1?'':'s')+'</span>'
     +'<button class="wkmini" data-wkren>✏️ Rename</button><button class="wkmini" data-wkdel style="color:var(--over)">🗑️ Delete week</button>';
   meta.querySelector("[data-wkren]").onclick=()=>{const n=prompt("Rename week:",act.name);if(n&&n.trim()){act.name=n.trim();saveWorkout();renderWorkout();}};
   meta.querySelector("[data-wkdel]").onclick=()=>{if(!confirm("Delete \""+act.name+"\" and all its data?"))return;WK.weeks=WK.weeks.filter(w=>w.id!==act.id);WK.active=WK.weeks.length?WK.weeks[WK.weeks.length-1].id:null;saveWorkout();renderWorkout();};
-  // days
+  // days — horizontal swipe pager
+  const tabsEl=document.getElementById("wkDayTabs");
   if(!act.days.length){
-    daysEl.innerHTML='<div class="wkempty">No days in this week yet.<br>Tap <b>＋ Add day</b> below.</div>';
+    tabsEl.innerHTML="";
+    daysEl.innerHTML='<div class="wkempty" style="min-width:100%;">No days in this week yet.<br>Tap <b>＋ Add day</b> below.</div>';
   } else {
+    if(wkDayIdx>act.days.length-1) wkDayIdx=act.days.length-1;
+    if(wkDayIdx<0) wkDayIdx=0;
+    tabsEl.innerHTML=act.days.map((d,i)=>'<button class="wkdtab'+(i===wkDayIdx?' on':'')+'" data-wkdtab="'+i+'">'+esc(d.name)+'</button>').join("");
     daysEl.innerHTML=act.days.map(d=>{
       const ex=d.exercises.map(e=>{
         const pr=exercisePR(e.name);
@@ -1654,12 +1670,18 @@ function renderWorkout(){
           +'<button class="exdel" data-wkexdel="'+d.id+'|'+e.id+'">🗑️ Delete</button></div>'
           +'</div>';
       }).join("");
-      return '<div class="daycard"><div class="dayhead"><div class="dn">'+esc(d.name)+'</div>'
+      return '<div class="daypage"><div class="daycard"><div class="dayhead"><div class="dn">'+esc(d.name)+'</div>'
         +'<div><button class="wkmini" data-wkdren="'+d.id+'">✏️</button><button class="wkmini" data-wkddel="'+d.id+'" style="color:var(--over)">🗑️</button></div></div>'
         +ex
         +'<button class="wkmini" style="color:var(--accent);font-weight:800;margin-top:12px;font-size:13px;" data-wkaddex="'+d.id+'">＋ Add exercise</button>'
-        +'</div>';
+        +'</div></div>';
     }).join("");
+    // tap a day tab -> swipe to it
+    tabsEl.querySelectorAll("[data-wkdtab]").forEach(b=>b.onclick=()=>{const i=+b.getAttribute("data-wkdtab");wkDayIdx=i;daysEl.scrollTo({left:i*daysEl.clientWidth,behavior:"smooth"});wkSetActiveTab();});
+    // swipe updates active tab
+    daysEl.onscroll=()=>{const i=Math.round(daysEl.scrollLeft/(daysEl.clientWidth||1));if(i!==wkDayIdx){wkDayIdx=i;wkSetActiveTab();}};
+    // keep the current day in view across re-renders (e.g. after editing a set)
+    requestAnimationFrame(()=>{daysEl.style.scrollBehavior="auto";daysEl.scrollLeft=wkDayIdx*daysEl.clientWidth;daysEl.style.scrollBehavior="";wkSetActiveTab();});
   }
   addDay.style.display="";
   wkBindDays(act);
@@ -1692,7 +1714,7 @@ document.getElementById("wkAddDay").onclick=()=>{
   const act=wkActive();if(!act)return;
   const n=prompt("Day name (e.g. Push, Legs, Day 1):");
   if(!n||!n.trim())return;
-  act.days.push({id:wkuid(),name:n.trim(),exercises:[]});saveWorkout();renderWorkout();
+  act.days.push({id:wkuid(),name:n.trim(),exercises:[]});wkDayIdx=act.days.length-1;saveWorkout();renderWorkout();
 };
 
 function switchView(v){
