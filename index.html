@@ -1734,6 +1734,17 @@ function wkWeekStats(week){
   });
   return {days,sets,vol};
 }
+function bestWInWeek(week,key){let bw=0,br=0;(week.days||[]).forEach(d=>(d.exercises||[]).forEach(e=>{if(wkNorm(e.name)!==key)return;(e.sets||[]).forEach(s=>{const w=parseFloat(s.w)||0,r=parseFloat(s.r)||0;if(w<=0)return;if(w>bw){bw=w;br=r;}else if(w===bw&&r>br)br=r;});}));return bw>0?{w:bw,r:br}:null;}
+function newPRsInWeek(act){
+  const seen={},out=[];
+  (act.days||[]).forEach(d=>(d.exercises||[]).forEach(e=>{
+    const key=wkNorm(e.name); if(!key||seen[key])return; seen[key]=1;
+    const tw=bestWInWeek(act,key); if(!tw)return;
+    let ow=0; WK.weeks.forEach(w=>{if(w.id===act.id)return;const b=bestWInWeek(w,key);if(b&&b.w>ow)ow=b.w;});
+    if(tw.w>ow) out.push({name:e.name,w:tw.w,r:tw.r});
+  }));
+  return out;
+}
 function renderWorkoutStats(){
   const el=document.getElementById("woStats"); if(!el) return;
   if(!WK.weeks.length){ el.innerHTML='<div class="ssub" style="margin-top:8px;">Log workouts in the 💪 Workout tab to see your training stats here.</div>'; return; }
@@ -1744,12 +1755,26 @@ function renderWorkoutStats(){
   const tile=(lbl,val)=>'<div class="stile"><div class="sbig">'+val+'</div><div class="ssub">'+lbl+'</div></div>';
   let html='<div class="ssub" style="margin-top:6px;margin-bottom:8px;">'+esc(act.name)+'</div>';
   html+='<div style="display:flex;gap:10px;">'+tile("days<br>trained",st.days)+tile("sets<br>logged",st.sets)+tile("kg<br>volume",Math.round(st.vol).toLocaleString())+'</div>';
-  if(prev){
-    const diff=st.vol-prev.vol;
-    if(prev.vol>0||st.vol>0){
-      const up=diff>=0;
-      html+='<div class="ssub" style="margin-top:10px;">Volume vs last week: <b style="color:'+(up?'var(--ok)':'var(--over)')+'">'+(up?'▲ +':'▼ ')+Math.abs(Math.round(diff)).toLocaleString()+' kg</b></div>';
-    }
+  // volume trend across all weeks
+  const vols=WK.weeks.map(w=>wkWeekStats(w).vol);
+  const maxVol=Math.max(...vols,1);
+  if(vols.some(v=>v>0)){
+    html+='<div class="ssub" style="margin-top:14px;margin-bottom:2px;">Volume by week (kg)</div><div class="stbars" style="height:82px;">';
+    WK.weeks.forEach((w,i)=>{
+      const v=vols[i], hpx=Math.max(4,Math.round(v/maxVol*64)), isAct=w.id===act.id;
+      html+='<div class="b" title="'+esc(w.name)+': '+Math.round(v).toLocaleString()+' kg"><i style="height:'+hpx+'px;background:'+(v===0?'var(--line)':(isAct?'var(--accent)':'#3a3a42'))+'"></i><span>'+(i+1)+'</span></div>';
+    });
+    html+='</div>';
+  }
+  // new PRs this week
+  const nprs=newPRsInWeek(act);
+  if(nprs.length){
+    html+='<div class="ssub" style="margin-top:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);">🎉 New PRs this week</div>';
+    nprs.forEach(p=>{
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);">'
+        +'<span style="font-size:13px;font-weight:700;">'+esc(p.name)+'</span>'
+        +'<span style="font-weight:800;font-size:13px;color:var(--ok);white-space:nowrap;">'+r1x(p.w)+' kg × '+p.r+' 🔥</span></div>';
+    });
   }
   // top PRs across all weeks
   const seen={},prs=[];
