@@ -351,6 +351,10 @@
       <div class="ssub" id="stAvg" style="margin-top:8px;"></div>
     </div>
     <div class="statcard">
+      <div class="statlbl">🏋️ Workout</div>
+      <div id="woStats"></div>
+    </div>
+    <div class="statcard">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div class="statlbl">⚖️ Weight</div>
         <button id="wtGear" style="background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;">⚙️</button>
@@ -1464,6 +1468,7 @@ function renderStats(){
   document.getElementById("stAvg").textContent = cnt? ("avg "+r1(sum/cnt)+" kcal · target "+TARGET.cal) : "No days logged yet";
   // weight
   renderWeight();
+  renderWorkoutStats();
 }
 function renderWeight(){
   const body=document.getElementById("wtBody");
@@ -1717,6 +1722,51 @@ document.getElementById("wkAddDay").onclick=()=>{
   act.days.push({id:wkuid(),name:n.trim(),exercises:[]});wkDayIdx=act.days.length-1;saveWorkout();renderWorkout();
 };
 
+function wkWeekStats(week){
+  let days=0,sets=0,vol=0;
+  (week.days||[]).forEach(d=>{
+    let dayLogged=false;
+    (d.exercises||[]).forEach(e=>(e.sets||[]).forEach(s=>{
+      const w=parseFloat(s.w)||0,r=parseFloat(s.r)||0;
+      if(w>0){ sets++; dayLogged=true; if(r>0) vol+=w*r; }
+    }));
+    if(dayLogged) days++;
+  });
+  return {days,sets,vol};
+}
+function renderWorkoutStats(){
+  const el=document.getElementById("woStats"); if(!el) return;
+  if(!WK.weeks.length){ el.innerHTML='<div class="ssub" style="margin-top:8px;">Log workouts in the 💪 Workout tab to see your training stats here.</div>'; return; }
+  const act=wkActive();
+  const st=wkWeekStats(act);
+  const idx=WK.weeks.findIndex(w=>w.id===act.id);
+  const prev=idx>0?wkWeekStats(WK.weeks[idx-1]):null;
+  const tile=(lbl,val)=>'<div class="stile"><div class="sbig">'+val+'</div><div class="ssub">'+lbl+'</div></div>';
+  let html='<div class="ssub" style="margin-top:6px;margin-bottom:8px;">'+esc(act.name)+'</div>';
+  html+='<div style="display:flex;gap:10px;">'+tile("days<br>trained",st.days)+tile("sets<br>logged",st.sets)+tile("kg<br>volume",Math.round(st.vol).toLocaleString())+'</div>';
+  if(prev){
+    const diff=st.vol-prev.vol;
+    if(prev.vol>0||st.vol>0){
+      const up=diff>=0;
+      html+='<div class="ssub" style="margin-top:10px;">Volume vs last week: <b style="color:'+(up?'var(--ok)':'var(--over)')+'">'+(up?'▲ +':'▼ ')+Math.abs(Math.round(diff)).toLocaleString()+' kg</b></div>';
+    }
+  }
+  // top PRs across all weeks
+  const seen={},prs=[];
+  WK.weeks.forEach(w=>w.days.forEach(d=>d.exercises.forEach(e=>{
+    const k=wkNorm(e.name); if(!k||seen[k])return; const pr=exercisePR(e.name); if(pr){seen[k]=1;prs.push({name:e.name,w:pr.w,r:pr.r});}
+  })));
+  prs.sort((a,b)=>b.w-a.w);
+  if(prs.length){
+    html+='<div class="ssub" style="margin-top:14px;text-transform:uppercase;letter-spacing:.5px;">🏆 Top PRs</div>';
+    prs.slice(0,5).forEach(p=>{
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);">'
+        +'<span style="font-size:13px;">'+esc(p.name)+'</span>'
+        +'<span style="font-weight:800;font-size:13px;color:var(--accent);white-space:nowrap;">'+r1x(p.w)+' kg × '+p.r+'</span></div>';
+    });
+  }
+  el.innerHTML=html;
+}
 function switchView(v){
   document.getElementById("logView").style.display=v==="log"?"":"none";
   document.getElementById("planView").style.display=v==="plan"?"":"none";
