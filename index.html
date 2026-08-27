@@ -308,11 +308,11 @@
         <circle id="ringF" class="rp" cx="66" cy="66" r="19" stroke="var(--f)" transform="rotate(-90 66 66)"/>
       </svg>
       <div class="ringinfo">
-        <div class="rcal"><span class="big" id="calNow">0</span><span class="lab"> / <span id="calTgt">2272</span></span></div>
+        <div class="rcal"><span class="big" id="calNow">0</span><span class="lab"> / <span id="calTgt">2413</span></span></div>
         <div class="rcalsub" id="calLeft">kcal</div>
         <div class="mlegend">
-          <div class="mrow"><span class="dot" style="background:var(--p)"></span>Protein <b id="pNow">0</b>/<span id="pTgt">119</span>g</div>
-          <div class="mrow"><span class="dot" style="background:var(--c)"></span>Carb <b id="cNow">0</b>/<span id="cTgt">317</span>g</div>
+          <div class="mrow"><span class="dot" style="background:var(--p)"></span>Protein <b id="pNow">0</b>/<span id="pTgt">120</span>g</div>
+          <div class="mrow"><span class="dot" style="background:var(--c)"></span>Carb <b id="cNow">0</b>/<span id="cTgt">351</span>g</div>
           <div class="mrow"><span class="dot" style="background:var(--f)"></span>Fat <b id="fNow">0</b>/<span id="fTgt">59</span>g</div>
         </div>
       </div>
@@ -756,7 +756,7 @@ const MEALS = [
 {brand:"ماكدونالدز",item:"بيج ماك 122",cal:484,protein:3,carb:100,fat:8},
 {brand:"ماكدونالدز",item:"تشيكن ماك ماكدونالدز",cal:860,protein:47,carb:69,fat:44}
 ];
-const TARGET = {cal:2272, protein:118.8, carb:317, fat:58.7};
+const TARGET = {cal:2413.2, protein:119.5, carb:350.8, fat:59};
 const MEAL_NAMES = ["🍳 Meal 1","🍗 Meal 2","🍽️ Meal 3","🥤 Snack","🍎 Snack 2"];
 let store = load();
 let curDate = todayStr();
@@ -1158,38 +1158,38 @@ function groupOf(name){
 /* ---- The 4 plans. Each: {name, desc, meals:[{mi, items:[{name,qty}]}]} ---- */
 const PLANS = [
   {
-    name:"My Default", desc:"Your usual 3-meal plan.",
+    name:"My Default", desc:"Your usual 3-meal plan — rice bumped for the new carbs. ~2508 kcal · 140P / 351C / 58F.",
     meals:[
       {mi:0, items:[{name:"كورن فليكس",qty:100},{name:"حليب ندى سادة",qty:325},{name:"تمر",qty:50},{name:"زبدة الفول السوداني (بيور)",qty:30}]},
-      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:250},{name:"دجاج",qty:100},{name:"فواكه (موز، تفاح، برتقال)",qty:200},{name:"زيت زيتون",qty:10}]},
-      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:200},{name:"دجاج",qty:150},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]}
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:300},{name:"دجاج",qty:150},{name:"فواكه (موز، تفاح، برتقال)",qty:200},{name:"زيت زيتون",qty:10}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:250},{name:"دجاج",qty:100},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]}
     ]
   },
   {
-    name:"Morning Training", desc:"Light pre-workout, then a big post-workout meal — best fit for morning gym days.",
+    name:"Morning Training", desc:"Light pre-workout, then a big post-workout meal — best for morning gym days.",
     meals:[
-      {mi:0, items:[{name:"تمر",qty:60},{name:"واي بروتين أيزوليت",qty:30},{name:"فواكه (موز، تفاح، برتقال)",qty:100}]},
-      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:350},{name:"دجاج",qty:170},{name:"فواكه (موز، تفاح، برتقال)",qty:150},{name:"زيت زيتون",qty:12}]},
-      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:220},{name:"دجاج",qty:120},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]},
-      {mi:3, items:[{name:"شوفان",qty:50},{name:"حليب قليل الدسم",qty:250},{name:"زبدة الفول السوداني (بيور)",qty:15}]}
+      {mi:0, items:[{name:"تمر",qty:70},{name:"واي بروتين أيزوليت",qty:15},{name:"فواكه (موز، تفاح، برتقال)",qty:120}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:380},{name:"دجاج",qty:120},{name:"فواكه (موز، تفاح، برتقال)",qty:170},{name:"زيت زيتون",qty:13}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:270},{name:"دجاج",qty:90},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:12}]},
+      {mi:3, items:[{name:"شوفان",qty:60},{name:"حليب قليل الدسم",qty:250},{name:"زبدة الفول السوداني (بيور)",qty:20}]}
     ]
   },
   {
     name:"Fasted Training", desc:"Train on an empty stomach, then a large post-workout meal breaks the fast.",
     meals:[
-      {mi:0, items:[{name:"رز أبيض مطبوخ",qty:380},{name:"دجاج",qty:180},{name:"فواكه (موز، تفاح، برتقال)",qty:250},{name:"زيت زيتون",qty:12}]},
-      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:260},{name:"دجاج",qty:130},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:10}]},
-      {mi:2, items:[{name:"شوفان",qty:55},{name:"حليب قليل الدسم",qty:250},{name:"تمر",qty:40},{name:"زبدة الفول السوداني (بيور)",qty:15}]}
+      {mi:0, items:[{name:"رز أبيض مطبوخ",qty:420},{name:"دجاج",qty:140},{name:"فواكه (موز، تفاح، برتقال)",qty:270},{name:"زيت زيتون",qty:13}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:300},{name:"دجاج",qty:110},{name:"خضراوات",qty:200},{name:"زيت زيتون",qty:12}]},
+      {mi:2, items:[{name:"شوفان",qty:55},{name:"حليب قليل الدسم",qty:250},{name:"تمر",qty:55},{name:"زبدة الفول السوداني (بيور)",qty:18}]}
     ]
   },
   {
     name:"Even Split", desc:"Balanced meals + snacks spread evenly through the day — simplest to follow.",
     meals:[
-      {mi:0, items:[{name:"شوفان",qty:55},{name:"حليب قليل الدسم",qty:250},{name:"بيض",qty:2},{name:"فواكه (موز، تفاح، برتقال)",qty:150}]},
-      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:250},{name:"دجاج",qty:130},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:8}]},
-      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:220},{name:"دجاج",qty:120},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:8}]},
-      {mi:3, items:[{name:"تمر",qty:60},{name:"واي بروتين أيزوليت",qty:25}]},
-      {mi:4, items:[{name:"زبادي يوناني خالي الدسم",qty:200},{name:"مكسرات",qty:18}]}
+      {mi:0, items:[{name:"شوفان",qty:65},{name:"حليب قليل الدسم",qty:250},{name:"بيض",qty:1},{name:"فواكه (موز، تفاح، برتقال)",qty:200}]},
+      {mi:1, items:[{name:"رز أبيض مطبوخ",qty:300},{name:"دجاج",qty:80},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:10}]},
+      {mi:2, items:[{name:"رز أبيض مطبوخ",qty:300},{name:"دجاج",qty:80},{name:"خضراوات",qty:150},{name:"زيت زيتون",qty:10}]},
+      {mi:3, items:[{name:"تمر",qty:90},{name:"واي بروتين أيزوليت",qty:12}]},
+      {mi:4, items:[{name:"زبادي يوناني خالي الدسم",qty:150},{name:"مكسرات",qty:22}]}
     ]
   }
 ];
@@ -1815,9 +1815,9 @@ document.getElementById("tabStats").onclick=()=>switchView("stats");
 document.getElementById("tabMore").onclick=()=>switchView("more");
 document.getElementById("tabWorkout").onclick=()=>switchView("workout");
 
-document.getElementById("calTgt").textContent=TARGET.cal;
+document.getElementById("calTgt").textContent=Math.round(TARGET.cal);
 document.getElementById("pTgt").textContent=Math.round(TARGET.protein);
-document.getElementById("cTgt").textContent=TARGET.carb;
+document.getElementById("cTgt").textContent=Math.round(TARGET.carb);
 document.getElementById("fTgt").textContent=Math.round(TARGET.fat);
 renderWeekStrip();
 render();
