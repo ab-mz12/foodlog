@@ -379,6 +379,16 @@
       <div id="suppsList" style="margin-top:6px;"></div>
     </div>
     <div class="statcard">
+      <div class="statlbl">📤 Export my data</div>
+      <div class="ssub" style="margin-top:6px;line-height:1.6;">Generate a copy of everything you've logged, then paste it to Claude in a new chat for a check-up.</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <button id="expBtn" style="flex:1;background:var(--accent);color:#111;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Generate export</button>
+        <button id="expCopy" style="display:none;flex:1;background:var(--card2);color:var(--accent);border:1px solid var(--accent2);border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">📋 Copy</button>
+      </div>
+      <textarea id="expOut" readonly style="display:none;width:100%;box-sizing:border-box;height:150px;margin-top:10px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:11px;font-family:monospace;-webkit-overflow-scrolling:touch;"></textarea>
+      <div id="expHint" class="ssub" style="display:none;margin-top:8px;">If “Copy” doesn't work, long-press the text → Select All → Copy.</div>
+    </div>
+    <div class="statcard">
       <div class="statlbl">⚙️ Info</div>
       <div class="ssub" style="margin-top:8px;line-height:1.7;">
         Your log saves automatically on this device.<br>
@@ -1792,6 +1802,36 @@ function renderWorkoutStats(){
   }
   el.innerHTML=html;
 }
+function buildExport(){
+  const keys=["foodlog_abdullah","supplog_abdullah","customfoods_abdullah","favorites_abdullah","weight_abdullah","wtmeta_abdullah","workout_abdullah"];
+  const data={};
+  keys.forEach(k=>{try{data[k]=JSON.parse(localStorage.getItem(k));}catch(e){data[k]=localStorage.getItem(k);}});
+  let loggedDays=0; try{loggedDays=Object.keys(data.foodlog_abdullah||{}).length;}catch(e){}
+  let wDays=0; try{wDays=Object.keys(data.weight_abdullah||{}).length;}catch(e){}
+  let weeks=0; try{weeks=(data.workout_abdullah&&data.workout_abdullah.weeks||[]).length;}catch(e){}
+  const meta={app:"Abdullah daily food log", exportedAt:new Date().toISOString(),
+    targets:TARGET, mealNames:MEAL_NAMES,
+    summary:{foodDaysLogged:loggedDays, weightEntries:wDays, workoutWeeks:weeks}};
+  return "=== FOODLOG EXPORT — Abdullah ===\nPaste this whole message to Claude and ask for a check-up.\n\n"+JSON.stringify({meta,data},null,2);
+}
+document.getElementById("expBtn").onclick=()=>{
+  const t=document.getElementById("expOut");
+  t.value=buildExport();
+  t.style.display="block";
+  document.getElementById("expCopy").style.display="";
+  document.getElementById("expHint").style.display="";
+  t.focus(); t.setSelectionRange(0,t.value.length);
+};
+document.getElementById("expCopy").onclick=async()=>{
+  const t=document.getElementById("expOut");
+  t.focus(); t.setSelectionRange(0,t.value.length);
+  let done=false;
+  try{ await navigator.clipboard.writeText(t.value); done=true; }catch(e){}
+  if(!done){ try{ done=document.execCommand("copy"); }catch(e){} }
+  const b=document.getElementById("expCopy");
+  const old=b.textContent; b.textContent=done?"✓ Copied!":"Select & copy manually";
+  setTimeout(()=>{b.textContent=old;},1600);
+};
 function switchView(v){
   document.getElementById("logView").style.display=v==="log"?"":"none";
   document.getElementById("planView").style.display=v==="plan"?"":"none";
