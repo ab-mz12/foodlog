@@ -379,6 +379,18 @@
       <div id="suppsList" style="margin-top:6px;"></div>
     </div>
     <div class="statcard">
+      <div class="statlbl">🧍 My profile</div>
+      <div class="ssub" style="margin-top:6px;">Fill this once — it's included in every export so the project knows your stats.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
+        <input id="pfAge" type="number" inputmode="numeric" placeholder="Age" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;width:100%;">
+        <input id="pfSex" placeholder="Sex" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;width:100%;">
+        <input id="pfHeight" type="number" inputmode="numeric" placeholder="Height cm" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;width:100%;">
+      </div>
+      <input id="pfGoal" placeholder="Goal (e.g. lean bulk / recomp / cut)" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;width:100%;margin-top:8px;">
+      <input id="pfSplit" placeholder="Training split (e.g. 5-day PPL)" style="background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;width:100%;margin-top:8px;">
+      <button id="pfSave" style="width:100%;margin-top:10px;background:var(--accent);color:#111;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Save profile</button>
+    </div>
+    <div class="statcard">
       <div class="statlbl">📤 Export my data</div>
       <div class="ssub" style="margin-top:6px;line-height:1.6;">Generate a copy of everything you've logged, then paste it to Claude in a new chat for a check-up.</div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -1802,15 +1814,30 @@ function renderWorkoutStats(){
   }
   el.innerHTML=html;
 }
+function loadProfile(){try{return JSON.parse(localStorage.getItem("profile_abdullah")||"{}");}catch(e){return {};}}
+let PROFILE=loadProfile();
+function fillProfile(){
+  const p=PROFILE;
+  const s=(id,v)=>{const el=document.getElementById(id); if(el&&document.activeElement!==el) el.value=v||"";};
+  s("pfAge",p.age); s("pfSex",p.sex); s("pfHeight",p.height); s("pfGoal",p.goal); s("pfSplit",p.split);
+}
+document.getElementById("pfSave").onclick=()=>{
+  PROFILE={age:document.getElementById("pfAge").value.trim(),sex:document.getElementById("pfSex").value.trim(),
+    height:document.getElementById("pfHeight").value.trim(),goal:document.getElementById("pfGoal").value.trim(),
+    split:document.getElementById("pfSplit").value.trim()};
+  localStorage.setItem("profile_abdullah",JSON.stringify(PROFILE));
+  const b=document.getElementById("pfSave");const o=b.textContent;b.textContent="✓ Saved";setTimeout(()=>{b.textContent=o;},1400);
+};
+fillProfile();
 function buildExport(){
-  const keys=["foodlog_abdullah","supplog_abdullah","customfoods_abdullah","favorites_abdullah","weight_abdullah","wtmeta_abdullah","workout_abdullah"];
+  const keys=["profile_abdullah","foodlog_abdullah","supplog_abdullah","customfoods_abdullah","favorites_abdullah","weight_abdullah","wtmeta_abdullah","workout_abdullah"];
   const data={};
   keys.forEach(k=>{try{data[k]=JSON.parse(localStorage.getItem(k));}catch(e){data[k]=localStorage.getItem(k);}});
   let loggedDays=0; try{loggedDays=Object.keys(data.foodlog_abdullah||{}).length;}catch(e){}
   let wDays=0; try{wDays=Object.keys(data.weight_abdullah||{}).length;}catch(e){}
   let weeks=0; try{weeks=(data.workout_abdullah&&data.workout_abdullah.weeks||[]).length;}catch(e){}
   const meta={app:"Abdullah daily food log", exportedAt:new Date().toISOString(),
-    targets:TARGET, mealNames:MEAL_NAMES,
+    profile:PROFILE, targets:TARGET, mealNames:MEAL_NAMES,
     summary:{foodDaysLogged:loggedDays, weightEntries:wDays, workoutWeeks:weeks}};
   return "=== FOODLOG EXPORT — Abdullah ===\nPaste this whole message to Claude and ask for a check-up.\n\n"+JSON.stringify({meta,data},null,2);
 }
