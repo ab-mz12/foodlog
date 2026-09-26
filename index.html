@@ -391,6 +391,11 @@
       <button id="pfSave" style="width:100%;margin-top:10px;background:var(--accent);color:#111;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Save profile</button>
     </div>
     <div class="statcard">
+      <div class="statlbl">🔁 Load new program</div>
+      <div class="ssub" style="margin-top:6px;line-height:1.6;"><b>UL · off · PPL · off</b> — 5 training days, 2 sets per exercise. Adds a fresh week with the new layout. Your existing weeks, logged sets and PRs stay untouched.</div>
+      <button id="loadProg" style="width:100%;margin-top:12px;background:var(--card2);color:var(--accent);border:1px solid var(--accent2);border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">＋ Add UL/PPL week</button>
+    </div>
+    <div class="statcard">
       <div class="statlbl">📤 Export my data</div>
       <div class="ssub" style="margin-top:6px;line-height:1.6;">Generate everything you've logged, then <b>Download file</b> and attach the .json to Claude for a check-up. 📋 Copy still works if you'd rather paste.</div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -1891,6 +1896,31 @@ document.getElementById("expDl").onclick=async()=>{
   if(msg===null){ b.textContent=old; return; }
   b.textContent=msg||old;
   setTimeout(()=>{b.textContent=old;},2200);
+};
+const ULPPL=[
+  {name:"Upper \u00b7 D1", ex:[["Pull-Ups","6-10"],["Chest Press Machine","6-10"],["Shoulder Press Machine","6-10"],["Machine Lateral Raises","10-15"],["Reardelt Fly Machine","10-15"],["Bicep Preacher Curl","8-12"],["Triceps Extension Single Arm","10-15"]]},
+  {name:"Lower \u00b7 D2", ex:[["Leg Press","6-10"],["Smith RDL","6-8"],["Leg Extension","10-15"],["Calf Raises","10-15"],["Ab Crunches","10-15"],["Reverse Wrist Curl","12-20"]]},
+  {name:"Push \u00b7 D4",  ex:[["Dips","6-10"],["Chest Press Incline Machine","6-10"],["High Incline Smith Machine Press","6-10"],["Machine Lateral Raises","10-15"],["Dual Rope Overhead Extension","10-15"]]},
+  {name:"Pull \u00b7 D5",  ex:[["Lat Pulldown","6-10"],["Seated Row Machine","8-12"],["Reardelt Fly Machine","10-15"],["Facing Away Cable Curl","8-12"],["Smith Machine Shrugs","8-12"],["Wrist Curl","12-20"]]},
+  {name:"Legs \u00b7 D6",  ex:[["Leg Press","8-12"],["Leg Curl","10-15"],["Adductor Machine","10-15"],["Calf Raises","10-15"],["Ab Crunches","10-15"]]}
+];
+function nextWeekNum(){
+  if(!WK.weeks.length) return 1;
+  const m=String(WK.weeks[WK.weeks.length-1].name||"").match(/(\d+)/g);
+  if(m&&m.length) return parseInt(m[0],10)+1;
+  return WK.weeks.length+1;
+}
+document.getElementById("loadProg").onclick=()=>{
+  if(!confirm("Add a new week with the UL \u00b7 off \u00b7 PPL \u00b7 off layout?\n\n5 training days, 2 sets per exercise.\nYour existing weeks and logged data stay untouched."))return;
+  const week={id:wkuid(), name:"Week "+nextWeekNum()+" \u00b7 UL/PPL", days:ULPPL.map(d=>({
+    id:wkuid(), name:d.name,
+    exercises:d.ex.map(e=>({id:wkuid(), name:e[0], targetReps:e[1], sets:[{w:"",r:""},{w:"",r:""}]}))
+  }))};
+  WK.weeks.push(week);
+  WK.active=week.id;
+  wkDayIdx=0;
+  saveWorkout();
+  switchView("workout");
 };
 function switchView(v){
   document.getElementById("logView").style.display=v==="log"?"":"none";
