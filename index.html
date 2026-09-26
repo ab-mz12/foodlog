@@ -392,10 +392,11 @@
     </div>
     <div class="statcard">
       <div class="statlbl">📤 Export my data</div>
-      <div class="ssub" style="margin-top:6px;line-height:1.6;">Generate a copy of everything you've logged, then paste it to Claude in a new chat for a check-up.</div>
+      <div class="ssub" style="margin-top:6px;line-height:1.6;">Generate everything you've logged, then <b>Download file</b> and attach the .json to Claude for a check-up. 📋 Copy still works if you'd rather paste.</div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
         <button id="expBtn" style="flex:1;background:var(--accent);color:#111;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Generate export</button>
         <button id="expCopy" style="display:none;flex:1;background:var(--card2);color:var(--accent);border:1px solid var(--accent2);border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">📋 Copy</button>
+        <button id="expDl" style="display:none;flex:1 1 100%;background:var(--accent);color:#111;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">⬇️ Download file</button>
       </div>
       <textarea id="expOut" readonly style="display:none;width:100%;box-sizing:border-box;height:150px;margin-top:10px;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px;font-size:11px;font-family:monospace;-webkit-overflow-scrolling:touch;"></textarea>
       <div id="expHint" class="ssub" style="display:none;margin-top:8px;">If “Copy” doesn't work, long-press the text → Select All → Copy.</div>
@@ -1829,7 +1830,7 @@ document.getElementById("pfSave").onclick=()=>{
   const b=document.getElementById("pfSave");const o=b.textContent;b.textContent="✓ Saved";setTimeout(()=>{b.textContent=o;},1400);
 };
 fillProfile();
-function buildExport(){
+function buildExportObj(){
   const keys=["profile_abdullah","foodlog_abdullah","supplog_abdullah","customfoods_abdullah","favorites_abdullah","weight_abdullah","wtmeta_abdullah","workout_abdullah"];
   const data={};
   keys.forEach(k=>{try{data[k]=JSON.parse(localStorage.getItem(k));}catch(e){data[k]=localStorage.getItem(k);}});
@@ -1839,13 +1840,35 @@ function buildExport(){
   const meta={app:"Abdullah daily food log", exportedAt:new Date().toISOString(),
     profile:PROFILE, targets:TARGET, mealNames:MEAL_NAMES,
     summary:{foodDaysLogged:loggedDays, weightEntries:wDays, workoutWeeks:weeks}};
-  return "=== FOODLOG EXPORT — Abdullah ===\nPaste this whole message to Claude and ask for a check-up.\n\n"+JSON.stringify({meta,data},null,2);
+  return {meta,data};
+}
+function buildExport(){
+  return "=== FOODLOG EXPORT — Abdullah ===\nPaste this whole message to Claude and ask for a check-up.\n\n"+JSON.stringify(buildExportObj(),null,2);
+}
+function exportFileName(){ return "foodlog-abdullah-"+todayStr()+".json"; }
+async function downloadExport(){
+  const json=JSON.stringify(buildExportObj(),null,2);
+  const name=exportFileName();
+  try{
+    if(navigator.canShare){
+      const f=new File([json],name,{type:"application/json"});
+      if(navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:name}); return "✓ Shared"; }
+    }
+  }catch(e){ if(e&&e.name==="AbortError") return null; }
+  const blob=new Blob([json],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=name; a.rel="noopener"; a.style.display="none";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{try{document.body.removeChild(a);}catch(e){} URL.revokeObjectURL(url);},2000);
+  return "✓ Saved to Files";
 }
 document.getElementById("expBtn").onclick=()=>{
   const t=document.getElementById("expOut");
   t.value=buildExport();
   t.style.display="block";
   document.getElementById("expCopy").style.display="";
+  document.getElementById("expDl").style.display="";
   document.getElementById("expHint").style.display="";
   t.focus(); t.setSelectionRange(0,t.value.length);
 };
@@ -1858,6 +1881,16 @@ document.getElementById("expCopy").onclick=async()=>{
   const b=document.getElementById("expCopy");
   const old=b.textContent; b.textContent=done?"✓ Copied!":"Select & copy manually";
   setTimeout(()=>{b.textContent=old;},1600);
+};
+document.getElementById("expDl").onclick=async()=>{
+  const b=document.getElementById("expDl");
+  const old=b.textContent;
+  b.textContent="Preparing…";
+  let msg;
+  try{ msg=await downloadExport(); }catch(e){ msg="Failed — use 📋 Copy"; }
+  if(msg===null){ b.textContent=old; return; }
+  b.textContent=msg||old;
+  setTimeout(()=>{b.textContent=old;},2200);
 };
 function switchView(v){
   document.getElementById("logView").style.display=v==="log"?"":"none";
