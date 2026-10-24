@@ -535,6 +535,8 @@ const INGREDIENTS = [
 {cat:"بروتين",name:"حليب قليل الدسم",unit:"ml",protein:0.033,carb:0.05,fat:0.03,cal:0.6},
 {cat:"بروتين",name:"حليب كامل الدسم",unit:"ml",protein:0.032,carb:0.05,fat:0.04,cal:0.69},
 {cat:"بروتين",name:"حليب ندى سادة",unit:"ml",protein:0.09,carb:0.09,fat:0.03,cal:0.99},
+{cat:"بروتين",name:"حليب المراعي كامل الدسم",unit:"ml",protein:0.031,carb:0.048,fat:0.032,cal:0.61},
+{cat:"بروتين",name:"حليب ندى كامل الدسم",unit:"ml",protein:0.031,carb:0.045,fat:0.033,cal:0.6},
 {cat:"كارب",name:"شوفان",unit:"g",protein:0.13,carb:0.67,fat:0.07,cal:3.83},
 {cat:"كارب",name:"رز أبيض مطبوخ",unit:"g",protein:0.025,carb:0.28,fat:0.003,cal:1.25},
 {cat:"كارب",name:"رز بني مطبوخ",unit:"g",protein:0.025,carb:0.23,fat:0.01,cal:1.11},
@@ -1187,7 +1189,15 @@ function renderSupps(){
 }
 
 /* ============ PLAN VIEW + SWAPS + PLAN SWITCHER ============ */
-function ing(name){return INGREDIENTS.find(i=>i.name===name);}
+function ing(name){
+  const r=INGREDIENTS.find(i=>i.name===name);
+  if(r) return r;
+  const c=(typeof CUSTOM!=="undefined"?CUSTOM:[]).find(m=>m.name===name);
+  if(!c) return undefined;
+  return c.per100
+    ? {name:c.name,unit:(/حليب/.test(c.name)?"ml":"g"),cal:c.cal,protein:c.protein,carb:c.carb,fat:c.fat}
+    : {name:c.name,unit:"حبة",cal:c.cal,protein:c.protein,carb:c.carb,fat:c.fat};
+}
 const SWAP_GROUPS = {
   protein_lean: {match:"protein", foods:["دجاج","لحم بقري (10% دهون)","صدر تركي","سمك مطبوخ","تونة بالماء","جمبري مطبوخ","سالمون مطبوخ"]},
   dairy_pro: {match:"protein", foods:["زبادي يوناني خالي الدسم","جبنة قريش"]},
@@ -1195,7 +1205,8 @@ const SWAP_GROUPS = {
   carb_main: {match:"carb", foods:["رز أبيض مطبوخ","رز بني مطبوخ","بطاطس مطبوخة","بطاطا حلوة مطبوخة","مكرونة مطبوخة"]},
   carb_oat: {match:"carb", foods:["شوفان","كورن فليكس"]},
   fruit: {match:"carb", foods:["فواكه (موز، تفاح، برتقال)","تمر"]},
-  fat: {match:"fat", foods:["زيت زيتون","مكسرات","زبدة الفول السوداني (بيور)"]}
+  fat: {match:"fat", foods:["زيت زيتون","مكسرات","زبدة الفول السوداني (بيور)"]},
+  milk: {match:"cal", foods:["حليب كامل الدسم","حليب المراعي كامل الدسم","حليب ندى كامل الدسم","حليب قليل الدسم"]}
 };
 function groupOf(name){
   for(const k in SWAP_GROUPS){ if(SWAP_GROUPS[k].foods.includes(name)) return k; }
@@ -1341,7 +1352,7 @@ function renderPlan(){
     meal.items.forEach((it,iidx)=>{
       const m=macrosFor(it.name,it.qty);
       const g=groupOf(it.name);
-      const alts=g?SWAP_GROUPS[g].foods.filter(n=>n!==it.name):[];
+      const alts=g?SWAP_GROUPS[g].foods.filter(n=>n!==it.name&&ing(n)):[];
       const isSel=selected.includes(selKey(pidx,iidx));
       const left=`<div class="pcell left${selectMode?' selectable':''}${isSel?' sel':''}" data-selk="${pidx}-${iidx}">
           ${selectMode?`<div class="selchk">${isSel?'✓':''}</div>`:''}
