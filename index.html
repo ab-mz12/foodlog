@@ -437,6 +437,11 @@ html,body{background:var(--bg)}
 @media (min-width:600px){#stage{box-shadow:0 0 0 11px #17181b,0 0 0 12px #3a3c40,0 40px 90px rgba(0,0,0,.7)}}
 .logw input{min-width:0}.logw .btn{flex:0 0 auto}
 .fr select{text-align-last:right;-webkit-appearance:none;appearance:none;background:transparent}
+/* no zooming: double-tap / pinch / input-focus zoom off (Safari ignores user-scalable=no) */
+html,body,button,a,input,select,textarea,label,[data-press]{touch-action:manipulation}
+input,select,textarea{font-size:16px}
+.albox input,.albox select{font-size:16px}
+.exp{font-size:16px}
 @media (prefers-reduced-transparency:reduce){.card,#sheet,#tabbar,.actg,#rest,#toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:#1d1f23!important}}
 
 </style>
@@ -1468,6 +1473,14 @@ $("#gkSave").onclick=async()=>{const v=$("#gkIn").value.trim();if(!v){shake($("#
   catch(e){try{localStorage.removeItem(GMODEL);}catch(x){}$("#gkState").textContent=e&&e.code==="bad_key"?"That key was rejected — copy it again from Google AI Studio.":"Couldn't check the key — are you online?";}};
 $("#gkDel").onclick=async()=>{if(await confirmD("Remove Gemini key?","Label and meal-photo scanning will stop. Barcodes keep working.","Remove")){try{localStorage.removeItem(GKEY);localStorage.removeItem(GMODEL);localStorage.removeItem("gemini_nothink_abdullah");}catch(e){}renderKey();}};
 
+/* block Safari zoom gestures so the app never gets stuck zoomed in */
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});
+document.addEventListener("dblclick",e=>e.preventDefault(),{passive:false});
+(function(){let last=0;document.addEventListener("touchend",e=>{const now=Date.now();
+  if(now-last<350&&!e.target.closest("input,textarea,select")){e.preventDefault();const t=e.target.closest("button,[data-press],[data-day],.row,.chip,.mh");if(t)t.click();}
+  last=now;},{passive:false});})();
+document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
 /* ================= BOOT ================= */
 onShow.stats=renderProgress;onShow.work=renderWork;onShow.more=()=>{renderMore();renderKey();};
 renderStrip();renderHome();renderPlan();renderBrands();renderWork();renderMore();renderKey();
