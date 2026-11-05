@@ -1005,36 +1005,6 @@ async function gfetch(url,key,opts={}){
   const sep=url.includes("?")?"&":"?";let r=await fetch(url+sep+"key="+encodeURIComponent(key),opts);
   if(r.status===401){const h=Object.assign({},opts.headers||{},{"x-goog-api-key":key});r=await fetch(url,Object.assign({},opts,{headers:h}));}
   return r;}
-async function pickModel(key,force){
-  if(!force){try{const m=localStorage.getItem(GMODEL);if(m)return m;}catch(e){}}
-  let best="gemini-2.5-flash";
-  try{const r=await gfetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",key);
-    if(r.status===400||r.status===401||r.status===403)throw {code:"bad_key"};
-    const j=await r.json();const list=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>String(m.name).replace(/^models\//,""))
-      .filter(n=>/^gemini-[\d.]+-flash/.test(n)&&!/(lite|image|tts|live|audio|embed|thinking|exp)/.test(n));
-    const ver=n=>parseFloat((/gemini-([\d.]+)/.exec(n)||[0,0])[1]);
-    list.sort((a,b)=>(/preview/.test(a)-/preview/.test(b))||(ver(b)-ver(a))||(a.length-b.length));
-    if(list[0])best=list[0];}catch(e){if(e&&e.code)throw e;}
-  try{localStorage.setItem(GMODEL,best);}catch(e){}return best;}
-async function shrink(file){try{const bmp=await createImageBitmap(file);const s=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement("canvas");
-  c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
-  const b=await new Promise(r=>c.toBlob(r,"image/jpeg",.85));return b||file;}catch(e){return file;}}
-const b64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
-function parseJSON(t){t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();try{return JSON.parse(t);}catch(e){}
-  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}throw {code:"invalid_json"};}
-async function geminiJSON(prompt,file,signal,retried){
-  const key=getKey();if(!key)throw {code:"no_key"};
-  const model=await pickModel(key,retried);const img=await shrink(file);const data=await b64(img);
-  let r;try{r=await gfetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,key,{method:"POST",signal,headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:img.type||"image/jpeg",data}}]}],generationConfig:{temperature:.2,responseMimeType:"application/json"}})});}
-  catch(e){if(signal.aborted)throw {code:"cancelled"};throw {code:"network"};}
-  if(r.status===404&&!retried){try{localStorage.removeItem(GMODEL);}catch(e){}return geminiJSON(prompt,file,signal,true);}
-  if(r.status===429)throw {code:"rate_limited"};
-  if(r.status===400||r.status===401||r.status===403){let m="";try{m=(await r.json()).error.message||"";}catch(e){}throw {code:/key/i.test(m)?"bad_key":"upstream_error",message:m};}
-  if(!r.ok)throw {code:"upstream_error"};
-  const j=await r.json();const c=j.candidates&&j.candidates[0];
-  if(!c||!c.content){throw {code:"refused"};}
-  return parseJSON((c.content.parts||[]).map(p=>p.text||"").join(""));}
 let zxP=null;function loadZX(){return zxP||(zxP=new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";s.onload=()=>res(window.ZXing);s.onerror=()=>{zxP=null;rej();};document.head.appendChild(s);}));}
 function scanSheet(){
   sheetBody("Scan food",`<div class="seg" id="scSeg" style="margin:0 16px 10px"></div><p class="sheet-note" id="scDesc"></p>
@@ -1048,72 +1018,142 @@ function scanSheet(){
   $("#scBack").onclick=()=>addFood(addMi);
 }
 ["#fileCam","#fileUp"].forEach(id=>$(id).addEventListener("change",e=>{const f=e.target.files&&e.target.files[0];if(f)runScan(f);}));
+/* ---- Gemini: pick models once (a fast "lite" one for reading labels, full flash for meal photos) ---- */
+function storedModels(){try{const v=JSON.parse(localStorage.getItem(GMODEL)||"null");return v&&v.flash?v:null;}catch(e){return null;}}
+async function pickModels(key,force){
+  if(!force){const m=storedModels();if(m)return m;}
+  const out={flash:"gemini-2.5-flash",lite:null};
+  try{const r=await gfetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",key);
+    if(r.status===400||r.status===401||r.status===403)throw {code:"bad_key"};
+    const j=await r.json();const all=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>String(m.name).replace(/^models\//,""))
+      .filter(n=>/^gemini-[\d.]+-flash/.test(n)&&!/(image|tts|live|audio|embed|thinking|exp|robotics)/.test(n));
+    const ver=n=>parseFloat((/gemini-([\d.]+)/.exec(n)||[0,0])[1]);
+    const rank=(a,b)=>(/preview/.test(a)-/preview/.test(b))||(ver(b)-ver(a))||(a.length-b.length);
+    const fl=all.filter(n=>!/lite/.test(n)).sort(rank),li=all.filter(n=>/lite/.test(n)).sort(rank);
+    if(fl[0])out.flash=fl[0];if(li[0])out.lite=li[0];}catch(e){if(e&&e.code)throw e;}
+  try{localStorage.setItem(GMODEL,JSON.stringify(out));}catch(e){}return out;}
+async function pickModel(key,force){return (await pickModels(key,force)).flash;}
+async function shrink(file,max=1280){try{const bmp=await createImageBitmap(file);const s=Math.min(1,max/Math.max(bmp.width,bmp.height));const c=document.createElement("canvas");
+  c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  const b=await new Promise(r=>c.toBlob(r,"image/jpeg",.82));return b||file;}catch(e){return file;}}
+const b64=blob=>new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(",")[1]);fr.onerror=rej;fr.readAsDataURL(blob);});
+function parseJSON(t){t=String(t||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();try{return JSON.parse(t);}catch(e){}
+  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}throw {code:"invalid_json"};}
+const NOTHINK="gemini_nothink_abdullah";
+function thinkCfg(model){try{if(localStorage.getItem(NOTHINK)===model)return null;}catch(e){}
+  if(/gemini-2\.5/.test(model))return {thinkingBudget:0};return {thinkingLevel:"low"};}
+async function geminiJSON(prompt,file,signal,opt={},retried){
+  const key=getKey();if(!key)throw {code:"no_key"};
+  const ms=await pickModels(key,retried==="model");const model=(opt.fast&&ms.lite)||ms.flash;
+  const img=opt.img||await shrink(file);opt.img=img;const data=opt.data||await b64(img);opt.data=data;
+  const gc={temperature:.1,responseMimeType:"application/json"};const tc=retried==="think"?null:thinkCfg(model);if(tc)gc.thinkingConfig=tc;
+  let r;try{r=await gfetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,key,{method:"POST",signal,headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:img.type||"image/jpeg",data}}]}],generationConfig:gc})});}
+  catch(e){if(signal.aborted)throw {code:"cancelled"};throw {code:"network"};}
+  if(r.status===404&&!retried){try{localStorage.removeItem(GMODEL);}catch(e){}return geminiJSON(prompt,file,signal,opt,"model");}
+  if(r.status===429)throw {code:"rate_limited"};
+  if(r.status===400||r.status===401||r.status===403){let m="";try{m=(await r.json()).error.message||"";}catch(e){}
+    if(/think/i.test(m)&&tc&&retried!=="think"){try{localStorage.setItem(NOTHINK,model);}catch(e){}return geminiJSON(prompt,file,signal,opt,"think");}
+    throw {code:/key/i.test(m)?"bad_key":"upstream_error",message:m};}
+  if(!r.ok)throw {code:"upstream_error"};
+  const j=await r.json();const c=j.candidates&&j.candidates[0];if(!c||!c.content)throw {code:"refused"};
+  return parseJSON((c.content.parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join(""));}
 async function runScan(file){
   const url=URL.createObjectURL(file);const mode=SCAN_MODES[scanMode];
   sheetBody("Scanning…",`<div class="pv"><img src="${url}" alt=""><div class="scanline"></div></div>
-    <div class="status"><span class="spin"></span><span id="scStat">${mode.k==="barcode"?"Reading barcode…":mode.k==="label"?"Reading the label…":"Looking at your meal…"}</span></div>
+    <div class="status"><span class="spin"></span><span id="scStat">${mode.k==="barcode"?"Reading barcode…":mode.k==="label"?"Reading the label…":"Looking at your meal…"}</span><span class="muted" id="scSec" style="margin-left:auto;font-variant-numeric:tabular-nums"></span></div>
     <div style="padding:0 16px"><button class="btn ghost" data-press id="scStop">Stop</button></div>`);
   scanCtl=new AbortController();const ctl=scanCtl;$("#scStop").onclick=()=>{ctl.abort();scanSheet();};
-  try{const res=await scanProcess(mode.k,file,ctl.signal,s=>{const el=$("#scStat");if(el)el.textContent=s;});if(ctl.signal.aborted)return;scanResult(res,url);}
-  catch(e){if(ctl.signal.aborted||e&&e.code==="cancelled")return;scanError(e,url);}
+  const t0=Date.now(),tick=setInterval(()=>{const el=$("#scSec");if(el)el.textContent=Math.floor((Date.now()-t0)/1000)+"s";else clearInterval(tick);},500);
+  try{const res=await scanProcess(mode.k,file,ctl.signal,s=>{const el=$("#scStat");if(el)el.textContent=s;});clearInterval(tick);if(ctl.signal.aborted)return;scanResult(res,url);}
+  catch(e){clearInterval(tick);if(ctl.signal.aborted||e&&e.code==="cancelled")return;scanError(e,url);}
 }
+/* ---- barcode: native detector, then ZXing on several versions of the photo ---- */
+async function canvasVariants(file){const out=[];try{const bmp=await createImageBitmap(file);
+  for(const [max,rot] of [[1600,0],[1000,0],[1600,90]]){const s=Math.min(1,max/Math.max(bmp.width,bmp.height));const w=Math.round(bmp.width*s),h=Math.round(bmp.height*s);
+    const c=document.createElement("canvas");c.width=rot?h:w;c.height=rot?w:h;const g=c.getContext("2d");if(rot){g.translate(h,0);g.rotate(Math.PI/2);}g.drawImage(bmp,0,0,w,h);out.push(c.toDataURL("image/jpeg",.9));}}catch(e){}return out;}
 async function decodeBarcode(file){
   if("BarcodeDetector" in window){try{const det=new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});const bmp=await createImageBitmap(file);const r=await det.detect(bmp);if(r[0])return r[0].rawValue;}catch(e){}}
-  try{const ZX=await loadZX();const url=URL.createObjectURL(file);try{const rd=new ZX.BrowserMultiFormatReader();const res=await rd.decodeFromImageUrl(url);return res&&res.getText?res.getText():null;}finally{URL.revokeObjectURL(url);}}catch(e){return null;}}
+  let ZX;try{ZX=await loadZX();}catch(e){return null;}
+  const F=ZX.BarcodeFormat,hints=new Map();hints.set(ZX.DecodeHintType.TRY_HARDER,true);hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128]);
+  const srcs=await canvasVariants(file);const raw=URL.createObjectURL(file);srcs.push(raw);
+  try{for(const src of srcs){try{const rd=new ZX.BrowserMultiFormatReader(hints);const res=await rd.decodeFromImageUrl(src);if(res&&res.getText)return res.getText();}catch(e){}}}finally{URL.revokeObjectURL(raw);}
+  return null;}
+const parseQty=q=>{const m=/([\d.,]+)\s*(ml|l|g|kg)\b/i.exec(q||"");if(!m)return null;let v=parseFloat(m[1].replace(",","."));const u=m[2].toLowerCase();if(u==="l")v*=1000;if(u==="kg")v*=1000;return {v,unit:/l/.test(u)?"ml":"g"};};
 async function offLookup(code,signal){
-  try{const t=new AbortController();const to=setTimeout(()=>t.abort(),6000);signal.addEventListener("abort",()=>t.abort());
-    const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=nutriments,serving_quantity,quantity`,{signal:t.signal});clearTimeout(to);
-    if(!r.ok)return null;const j=await r.json();if(j.status!==1||!j.product)return null;const n=j.product.nutriments||{};
-    const kcal=n["energy-kcal_100g"]??(n["energy_100g"]?n["energy_100g"]/4.184:null);if(kcal==null)return null;
-    return {source:"off",code,basis:"per100",unit:/ml|l\b/i.test(j.product.quantity||"")?"ml":"g",per100:{cal:kcal,protein:n.proteins_100g||0,carb:n.carbohydrates_100g||0,fat:n.fat_100g||0},
-      servingSize:j.product.serving_quantity?+j.product.serving_quantity:null,confidence:"high",note:"Found in Open Food Facts"};}catch(e){return null;}
+  try{const t=new AbortController();const to=setTimeout(()=>t.abort(),7000);signal.addEventListener("abort",()=>t.abort());
+    const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,brands,nutriments,serving_quantity,quantity`,{signal:t.signal});clearTimeout(to);
+    if(!r.ok)return null;const j=await r.json();if(j.status!==1||!j.product)return null;const p=j.product,n=p.nutriments||{};
+    const q=parseQty(p.quantity)||parseQty(p.product_name);const unit=q?q.unit:(/ml|drink|juice|milk|حليب|عصير/i.test((p.product_name||"")+(p.quantity||""))?"ml":"g");
+    const size=p.serving_quantity?+p.serving_quantity:(q?q.v:null);
+    const kcal=n["energy-kcal_100g"]??(n["energy_100g"]?n["energy_100g"]/4.184:null);
+    const info={code,name:[p.brands,p.product_name].filter(Boolean).join(" · "),unit,servingSize:size};
+    if(kcal==null)return {info};
+    return {info,res:{source:"off",kind:"barcode",code,unit,per100:{cal:kcal,protein:n.proteins_100g||0,carb:n.carbohydrates_100g||0,fat:n.fat_100g||0},servingSize:size,confidence:"high",note:"Found in Open Food Facts"}};}catch(e){return null;}
 }
 const FIELDS='{"cal":number,"protein":number,"carb":number,"fat":number}';
-function scanPrompt(kind,code){
-  if(kind==="label")return `The image is a photo of a food or drink package's nutrition facts panel (it may be in Arabic, English or both). Read the values exactly as printed.
-Reply with only JSON: {"per100":${FIELDS} or null,"perServing":${FIELDS} or null,"servingSize":number or null,"unit":"g" or "ml","confidence":"high"|"medium"|"low","note":"one short sentence, e.g. which column you read"}
-Rules: energy in kcal (if only kJ is printed, divide by 4.184). carb = total carbohydrates. Fill per100 when a per-100 g/ml column exists; fill perServing when a per-serving column exists (servingSize in g or ml). If no nutrition panel is readable, use nulls and confidence "low" and say why in note. Never include a product name.`;
-  if(kind==="barcode")return `The image shows a packaged food or drink, focused on its barcode.${code?` A scanner already decoded the barcode as ${code}.`:""}
-1) Read the barcode digits if visible. 2) If a nutrition facts panel is visible anywhere in the photo, read it exactly. 3) Otherwise, ONLY if you can clearly recognise the exact product from the packaging (brand, product, size), give its typical published per-100 values with confidence "medium". If you are not sure, return nulls with confidence "low" — never guess numbers for an unknown product.
-Reply with only JSON: {"barcode":string or null,"per100":${FIELDS} or null,"perServing":${FIELDS} or null,"servingSize":number or null,"unit":"g" or "ml","confidence":"high"|"medium"|"low","note":"one short sentence on where the numbers came from"}. Energy in kcal. Never include a product name.`;
-  return `The image is a photo of a meal or food someone in Saudi Arabia is about to eat. Identify each visible component, estimate its cooked weight in grams from the plate and portion size, and estimate its macros. Be realistic, not generous.
-Reply with only JSON: {"items":[{"guess":"short English description","grams":number,"cal":number,"protein":number,"carb":number,"fat":number}],"confidence":"medium"|"low","note":"one short sentence, e.g. what was hard to judge"}. If there is no food in the photo, return an empty items array with confidence "low".`;
+function scanPrompt(kind,code,info){
+  const json=`{"barcode":string or null,"per100":${FIELDS} or null,"perServing":${FIELDS} or null,"servingSize":number or null,"packSize":number or null,"unit":"g" or "ml","confidence":"high"|"medium"|"low","note":"one short sentence"}`;
+  if(kind==="label")return `Read the nutrition facts panel in this photo (Arabic and/or English) exactly as printed. Reply with only JSON: ${json}
+Rules: energy in kcal (if only kJ, divide by 4.184); carb = total carbohydrates. per100 = the per 100 g/ml column if printed. perServing = the per serving column if printed, and servingSize = that serving's size in g or ml. packSize = the pack's net content in g or ml if printed (e.g. 250 for a 250 ml can). unit = ml for drinks, g for foods. If no panel is readable: nulls, confidence "low". No product name.`;
+  if(kind==="barcode")return `This photo shows a packaged food or drink, focused on its barcode.${code?` The barcode is ${code}.`:" Read the barcode digits if you can."}${info&&info.name?` A food database says this product is "${info.name}" but has no nutrition for it.`:""}
+If any nutrition panel is visible, read it exactly. Otherwise, only if you clearly know this exact product's published nutrition, give it per 100 ml/g with confidence "medium". If unsure, use nulls and confidence "low" — never invent numbers.
+Reply with only JSON: ${json}. Energy in kcal. No product name.`;
+  return `Photo of a meal someone in Saudi Arabia is about to eat. Identify each visible component, estimate its cooked weight in grams and its macros. Be realistic.
+Reply with only JSON: {"items":[{"guess":"short English description","grams":number,"cal":number,"protein":number,"carb":number,"fat":number}],"confidence":"medium"|"low","note":"one short sentence"}. If there is no food, return an empty items array.`;
 }
+const okM=o=>o&&typeof o==="object"&&["cal","protein","carb","fat"].some(k=>num(o[k])>0);
+const toM=o=>({cal:num(o.cal),protein:num(o.protein),carb:num(o.carb),fat:num(o.fat)});
 async function scanProcess(kind,file,signal,status){
-  let code=null;
-  if(kind==="barcode"){code=await decodeBarcode(file);if(code){status(`Barcode ${code} — looking it up…`);const off=await offLookup(code,signal);if(off)return off;status(getKey()?"Not in the database — reading the pack…":"Not in the database");}
-    else status(getKey()?"Reading the pack…":"No barcode found");}
-  if(kind==="barcode"&&!getKey())throw {code:code?"not_found_nokey":"no_code_nokey",message:code||""};
-  const j=await geminiJSON(scanPrompt(kind,code),file,signal);
-  if(kind==="meal"){const items=(j&&Array.isArray(j.items)?j.items:[]).map(i=>({guess:String(i.guess||"item"),grams:num(i.grams),cal:num(i.cal),protein:num(i.protein),carb:num(i.carb),fat:num(i.fat)}));
+  if(kind==="meal"){status("Looking at your meal…");const j=await geminiJSON(scanPrompt("meal"),file,signal);
+    const items=(j&&Array.isArray(j.items)?j.items:[]).map(i=>({guess:String(i.guess||"item"),grams:num(i.grams),cal:num(i.cal),protein:num(i.protein),carb:num(i.carb),fat:num(i.fat)}));
     if(!items.length)throw {code:"empty",message:(j&&j.note)||"No food found in the photo."};
     const tot=items.reduce((a,i)=>({cal:a.cal+i.cal,protein:a.protein+i.protein,carb:a.carb+i.carb,fat:a.fat+i.fat}),{cal:0,protein:0,carb:0,fat:0});
-    return {source:"ai",kind,basis:"serving",unit:"g",perServing:tot,servingSize:items.reduce((a,i)=>a+i.grams,0),items,confidence:j.confidence||"low",note:j.note||""};}
-  const ok=o=>o&&typeof o==="object"&&["cal","protein","carb","fat"].some(k=>num(o[k])>0);
-  const per100=ok(j&&j.per100)?{cal:num(j.per100.cal),protein:num(j.per100.protein),carb:num(j.per100.carb),fat:num(j.per100.fat)}:null;
-  const perServing=ok(j&&j.perServing)?{cal:num(j.perServing.cal),protein:num(j.perServing.protein),carb:num(j.perServing.carb),fat:num(j.perServing.fat)}:null;
-  if(!per100&&!perServing)throw {code:"empty",message:(j&&j.note)||"Couldn't read nutrition numbers from that photo."};
-  return {source:"ai",kind,code:code||(j&&j.barcode)||null,basis:per100?"per100":"serving",unit:j.unit==="ml"?"ml":"g",per100,perServing,servingSize:num(j.servingSize)||null,confidence:j.confidence||"medium",note:j.note||""};
+    return {source:"ai",kind,unit:"g",perServing:tot,servingSize:items.reduce((a,i)=>a+i.grams,0)||null,items,confidence:j.confidence||"low",note:j.note||""};}
+  let code=null,info=null;
+  if(kind==="barcode"){code=await decodeBarcode(file);
+    if(code){status(`Barcode ${code} — looking it up…`);const o=await offLookup(code,signal);if(o&&o.res)return o.res;info=o&&o.info;
+      if(!getKey())throw {code:info?"found_no_nutrition":"not_found_nokey",message:info?info.name:code};
+      status(info?"Found it — no nutrition in the database, checking the pack…":"Not in the database — reading the pack…");}
+    else{if(!getKey())throw {code:"no_code_nokey"};status("Reading the barcode from the photo…");}}
+  const j=await geminiJSON(scanPrompt(kind,code,info),file,signal,{fast:true});
+  if(kind==="barcode"&&!code&&j&&j.barcode&&/^\d{8,14}$/.test(String(j.barcode).replace(/\s/g,""))){code=String(j.barcode).replace(/\s/g,"");status(`Barcode ${code} — looking it up…`);
+    const o=await offLookup(code,signal);if(o&&o.res)return o.res;info=info||(o&&o.info);}
+  const per100=okM(j&&j.per100)?toM(j.per100):null,perServing=okM(j&&j.perServing)?toM(j.perServing):null;
+  if(!per100&&!perServing){if(kind==="barcode")throw {code:info?"found_no_nutrition":"barcode_no_nutrition",message:info?info.name:(code||"")};throw {code:"empty",message:(j&&j.note)||"Couldn't read nutrition numbers from that photo."};}
+  const unit=j.unit==="ml"||(info&&info.unit==="ml")?"ml":"g";
+  return {source:"ai",kind,code,unit,per100,perServing,servingSize:num(j.servingSize)||(info&&info.servingSize)||num(j.packSize)||null,packSize:num(j.packSize)||null,confidence:j.confidence||"medium",note:j.note||""};
 }
 function scanError(e,url){
   const map={no_key:"To read labels and meal photos, add your free Gemini key in More → Photo scanning. Barcodes work without it.",
-    not_found_nokey:`Barcode ${e&&e.message} isn't in the Open Food Facts database. Add a Gemini key in More → Photo scanning to read the pack instead, or type the numbers in.`,
-    no_code_nokey:"Couldn't read a barcode in that photo. Try closer and in good light, or add a Gemini key in More to read the pack.",
+    not_found_nokey:`Barcode ${e&&e.message} isn't in the Open Food Facts database. Snap the nutrition label instead, or type the numbers in.`,
+    found_no_nutrition:`Found it: ${e&&e.message}. But the database has no nutrition numbers for this product, so snap its nutrition label instead.`,
+    barcode_no_nutrition:`Read the barcode${e&&e.message?" ("+e.message+")":""}, but couldn't find its nutrition. Snap the nutrition label instead.`,
+    no_code_nokey:"Couldn't read a barcode in that photo. Try closer and in good light, or snap the nutrition label.",
     bad_key:"Your Gemini key was rejected. Check it in More → Photo scanning.",network:"No connection — check your internet and try again.",
     rate_limited:"Gemini's free limit is used up for now — try again in a minute.",upstream_error:"Gemini had a problem with that photo — try again.",
     invalid_json:"Couldn't read that — try a sharper, closer photo.",refused:"Gemini couldn't read that photo — try another one.",empty:e&&e.message};
+  const toLabel=["found_no_nutrition","barcode_no_nutrition","not_found_nokey","no_code_nokey"].includes(e&&e.code);
   sheetBody("Couldn't scan",`<div class="pv"><img src="${url}" alt="" style="opacity:.5"></div><p class="sheet-note" style="font-size:15px;color:var(--label)">${esc(map[e&&e.code]||"Something went wrong reading that photo. Try again.")}</p>
-    <div style="padding:0 16px"><button class="btn" data-press id="seRetry">Try another photo</button><button class="btn ghost" data-press id="seMan" style="margin-top:8px">Enter manually</button></div>`);
-  $("#seRetry").onclick=()=>scanSheet();$("#seMan").onclick=()=>customForm();
+    <div style="padding:0 16px">${toLabel?`<button class="btn" data-press id="seLabel">Snap the nutrition label</button>`:`<button class="btn" data-press id="seRetry">Try another photo</button>`}
+    <button class="btn ghost" data-press id="seMan" style="margin-top:8px">Enter manually</button></div>`);
+  if(toLabel)$("#seLabel").onclick=()=>{scanMode=1;scanSheet();$("#fileCam").value="";$("#fileCam").click();};else $("#seRetry").onclick=()=>scanSheet();
+  $("#seMan").onclick=()=>customForm();
 }
+/* ---- result: per 100 g/ml or per serving, converted both ways from the serving size ---- */
 function scanResult(res,url){
-  let basis=res.basis;const both=res.per100&&res.perServing;
-  const badge=res.source==="off"?`<span class="srcb ok">✓ Open Food Facts · ${esc(res.code)}</span>`:res.confidence==="high"?`<span class="srcb ai">✓ Read from the photo</span>`:`<span class="srcb mid">≈ Estimate (${esc(res.confidence)} confidence) — check the numbers</span>`;
-  const unitLbl=()=>basis==="per100"?`Per 100 ${res.unit}`:res.kind==="meal"?"Whole plate":`Per serving${res.servingSize?` (${res.servingSize} ${res.unit})`:""}`;
-  sheetBody("Scan result",`<div style="display:flex;gap:12px;align-items:center;padding:0 16px 10px"><img src="${url}" alt="" style="width:64px;height:64px;border-radius:14px;object-fit:cover"><div>${badge.replace('class="srcb','style="margin:0" class="srcb')}<div class="tiny muted" style="margin-top:4px">${esc(res.note||"")}</div></div></div>
+  const meal=res.kind==="meal";let unit=res.unit||"g",S=res.servingSize||res.packSize||null;
+  const scale=(o,f)=>o?{cal:o.cal*f,protein:o.protein*f,carb:o.carb*f,fat:o.fat*f}:null;
+  let P=res.per100?{...res.per100}:null,V=res.perServing?{...res.perServing}:null;
+  if(!P&&V&&S)P=scale(V,100/S);if(!V&&P&&S)V=scale(P,S/100);
+  let basis=P?"per100":"serving";
+  const servLbl=meal?"Whole plate":"Per serving";
+  const badge=res.source==="off"?`<span class="srcb ok" style="margin:0">✓ Open Food Facts · ${esc(res.code)}</span>`:res.confidence==="high"?`<span class="srcb ai" style="margin:0">✓ Read from the photo</span>`:`<span class="srcb mid" style="margin:0">≈ Estimate (${esc(res.confidence)}) — check the numbers</span>`;
+  sheetBody("Scan result",`<div style="display:flex;gap:12px;align-items:center;padding:0 16px 10px"><img src="${url}" alt="" style="width:64px;height:64px;border-radius:14px;object-fit:cover"><div>${badge}<div class="tiny muted" style="margin-top:4px">${esc(res.note||"")}</div></div></div>
     ${res.items?`<div class="itemsl">${res.items.map(i=>`<div><span>${esc(i.guess)} · ~${r0(i.grams)} g</span><span>${r0(i.cal)} kcal</span></div>`).join("")}</div>`:""}
-    <div class="grp"><div class="fr"><label>Name</label><input id="srN" placeholder="Name this food" dir="auto"></div></div>
-    ${both?`<div class="seg" id="srSeg" style="margin:0 16px 12px"></div>`:""}
+    <div class="grp"><div class="fr"><label>Name</label><input id="srN" placeholder="Name this food" dir="auto"></div>
+      <div class="fr"><label>${meal?"Plate weight":"Serving size"}</label><input id="srS" inputmode="decimal" placeholder="e.g. 250" value="${S?r1(S):""}"><span class="u" id="srU" style="cursor:pointer;padding:6px 10px;border-radius:9px;background:rgba(235,240,248,.1)">${unit}</span></div></div>
+    <div class="seg" id="srSeg" style="margin:0 16px 8px"></div>
     <div class="sheet-note" id="srBasis" style="padding-bottom:6px;font-weight:600"></div>
     <div class="grp">${[["cal","Calories","kcal"],["protein","Protein","g"],["carb","Carbs","g"],["fat","Fat","g"]].map(([k,l,u])=>`<div class="fr"><label>${l}</label><input id="sr_${k}" inputmode="decimal"><span class="u">${u}</span></div>`).join("")}</div>
     <div class="sheet-note" style="padding-bottom:0;font-weight:600">YOU'RE EATING</div>
@@ -1121,25 +1161,36 @@ function scanResult(res,url){
     <div class="mgrid" id="srTot"></div>
     <div style="padding:0 16px"><button class="btn" data-press id="srAdd">Save & add to ${MEAL_NAMES[addMi]}</button>
     <div class="grid2" style="padding:8px 0 0"><button class="btn ghost" data-press id="srRe">Retake</button><button class="btn ghost" data-press id="srSave">Save only</button></div></div>`);
-  let qty;const vals=()=>({cal:num($("#sr_cal").value),protein:num($("#sr_protein").value),carb:num($("#sr_carb").value),fat:num($("#sr_fat").value)});
-  const fill=()=>{const src=basis==="per100"?res.per100:res.perServing;["cal","protein","carb","fat"].forEach(k=>$("#sr_"+k).value=r1(src[k]));
-    qty=basis==="per100"?(res.servingSize||100):1;$("#squ").textContent=basis==="per100"?res.unit:(res.kind==="meal"?"plate":"serving");$("#srBasis").textContent=unitLbl().toUpperCase();tot();};
-  const factor=()=>basis==="per100"?qty/100:qty;
-  const tot=()=>{$("#sqv").value=r1(qty);const v=vals(),f=factor();$("#srTot").innerHTML=[["kcal",v.cal*f,"var(--cal)"],["prot",v.protein*f,"var(--pro)"],["carb",v.carb*f,"var(--carb)"],["fat",v.fat*f,"var(--fat)"]].map(([l,x,c])=>`<div><b style="color:${c}">${r0(x)}</b><span>${l}</span></div>`).join("");};
-  if(both)makeSeg($("#srSeg"),["Per 100 "+res.unit,"Per serving"],i=>{basis=i?"serving":"per100";fill();},basis==="per100"?0:1);
+  let qty=0;
+  const vals=()=>({cal:num($("#sr_cal").value),protein:num($("#sr_protein").value),carb:num($("#sr_carb").value),fat:num($("#sr_fat").value)});
+  const cur=()=>basis==="per100"?P:V;
+  const showTot=()=>{const v=vals(),f=basis==="per100"?qty/100:qty;$("#srTot").innerHTML=[["kcal",v.cal*f,"var(--cal)"],["prot",v.protein*f,"var(--pro)"],["carb",v.carb*f,"var(--carb)"],["fat",v.fat*f,"var(--fat)"]].map(([l,x,c])=>`<div><b style="color:${c}">${r0(x)}</b><span>${l}</span></div>`).join("");};
+  const setQty=q=>{qty=q;$("#sqv").value=r1(qty);showTot();};
+  const fill=()=>{const src=cur()||{cal:0,protein:0,carb:0,fat:0};["cal","protein","carb","fat"].forEach(k=>$("#sr_"+k).value=r1(src[k]));
+    $("#srBasis").textContent=(basis==="per100"?`Values per 100 ${unit}`:`Values ${meal?"for the whole plate":"per serving"}${S?` (${r1(S)} ${unit})`:""}`).toUpperCase();
+    $("#squ").textContent=basis==="per100"?unit:(meal?"plate":"serving");setQty(basis==="per100"?(S||100):1);};
+  const seg=makeSeg($("#srSeg"),[`Per 100 ${unit}`,servLbl],i=>{const want=i?"serving":"per100";
+      if(want==="per100"&&!P){if(!S){seg.place(1);shake($("#srS"));toast(`Enter the ${meal?"plate weight":"serving size"} first`);return;}P=scale(V,100/S);}
+      if(want==="serving"&&!V){if(!S){seg.place(0);shake($("#srS"));toast("Enter the serving size first");return;}V=scale(P,S/100);}
+      basis=want;fill();},basis==="per100"?0:1);
+  const relabel=()=>{const b=$("#srSeg").querySelector('button[data-i="0"]');if(b)b.textContent=`Per 100 ${unit}`;};
   fill();
-  $$(".grp input[id^=sr_]").forEach(i=>i.addEventListener("input",tot));
-  $("#sqv").addEventListener("input",e=>{qty=num(e.target.value);const v=vals(),f=factor();$("#srTot").innerHTML=[["kcal",v.cal*f,"var(--cal)"],["prot",v.protein*f,"var(--pro)"],["carb",v.carb*f,"var(--carb)"],["fat",v.fat*f,"var(--fat)"]].map(([l,x,c])=>`<div><b style="color:${c}">${r0(x)}</b><span>${l}</span></div>`).join("");});
-  const st=()=>basis==="per100"?10:.25;$("#sqm").onclick=()=>{qty=Math.max(st(),r1(qty-st()));tot();vib(4)};$("#sqp").onclick=()=>{qty=r1(qty+st());tot();vib(4)};
+  $$(".grp input[id^=sr_]").forEach(i=>i.addEventListener("input",()=>{const v=vals();if(basis==="per100"){P=v;V=S?scale(P,S/100):V;}else{V=v;P=S?scale(V,100/S):P;}showTot();}));
+  $("#srS").addEventListener("input",e=>{S=num(e.target.value)||null;if(S){if(basis==="per100")V=scale(P,S/100);else P=scale(V,100/S);}
+    $("#srBasis").textContent=(basis==="per100"?`Values per 100 ${unit}`:`Values ${meal?"for the whole plate":"per serving"}${S?` (${r1(S)} ${unit})`:""}`).toUpperCase();if(basis==="per100"&&S)setQty(S);});
+  $("#srU").onclick=()=>{unit=unit==="g"?"ml":"g";$("#srU").textContent=unit;relabel();fill();vib(4);};
+  $("#sqv").addEventListener("input",e=>{qty=num(e.target.value);showTot();});
+  const st=()=>basis==="per100"?10:.25;$("#sqm").onclick=()=>{setQty(Math.max(st(),r1(qty-st())));vib(4)};$("#sqp").onclick=()=>{setQty(r1(qty+st()));vib(4)};
   $("#srRe").onclick=()=>scanSheet();
   const save=andAdd=>{const name=$("#srN").value.trim();if(!name){shake($("#srN"));toast("Name it first");return;}
-    const v=vals();const c=basis==="per100"?{name,per100:true,refAmt:res.servingSize||100,cal:v.cal/100,protein:v.protein/100,carb:v.carb/100,fat:v.fat/100}:{name,per100:false,refAmt:0,cal:v.cal,protein:v.protein,carb:v.carb,fat:v.fat};
+    const v=vals();const c=basis==="per100"?{name,per100:true,refAmt:S||100,cal:v.cal/100,protein:v.protein/100,carb:v.carb/100,fat:v.fat/100}:{name,per100:false,refAmt:0,cal:v.cal,protein:v.protein,carb:v.carb,fat:v.fat};
     const ex=CUSTOM.findIndex(x=>x.name===name);if(ex>=0)CUSTOM[ex]=c;else CUSTOM.unshift(c);
-    if(andAdd){const f=factor();closeSheet();setTimeout(()=>addToDay(addMi,[mkItem(name,basis==="per100"?`${r1(qty)} ${res.unit}`:`${r1(qty)} ${res.kind==="meal"?"plate":"serving"}`,{cal:v.cal*f,protein:v.protein*f,carb:v.carb*f,fat:v.fat*f})]),140);}
+    if(andAdd){const f=basis==="per100"?qty/100:qty;closeSheet();setTimeout(()=>addToDay(addMi,[mkItem(name,basis==="per100"?`${r1(qty)} ${unit}`:`${r1(qty)} ${meal?"plate":"serving"}`,{cal:v.cal*f,protein:v.protein*f,carb:v.carb*f,fat:v.fat*f})]),140);}
     else{toast("✓ Saved to My foods");fcat="custom";addFood(addMi);}};
   $("#srAdd").onclick=()=>save(true);$("#srSave").onclick=()=>save(false);
   setTimeout(()=>$("#srN")&&$("#srN").focus(),350);
 }
+
 $("#scanTop").onclick=()=>{addMi=Math.min(4,Math.max(0,suggestMeal()));openSheet("Scan food","");scanSheet();};
 function suggestMeal(){const d=dayData(curDay);const i=d.findIndex(m=>!m.length);return i<0?0:i;}
 
@@ -1411,11 +1462,11 @@ $("#expDl").onclick=async()=>{const name=`foodlog-abdullah-${todayStr()}.json`;c
   try{const f=new File([blob],name,{type:"application/json"});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});return;}}catch(e){if(e&&e.name==="AbortError")return;}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}catch(e){toast("Download isn't available — use Copy");}};
 /* photo scanning settings */
-function renderKey(){const k=getKey();$("#gkState").textContent=k?"Key saved · "+(localStorage.getItem(GMODEL)||"model picked on first scan"):"No key yet — barcodes still work";$("#gkIn").value="";$("#gkIn").placeholder=k?"•••• "+k.slice(-4):"Paste your Gemini API key";$("#gkDel").style.display=k?"":"none";}
+function renderKey(){const k=getKey();const ms=storedModels();$("#gkState").textContent=k?"Key saved · "+(ms?ms.flash+(ms.lite?" + "+ms.lite:""):"model picked on first scan"):"No key yet — barcodes still work";$("#gkIn").value="";$("#gkIn").placeholder=k?"•••• "+k.slice(-4):"Paste your Gemini API key";$("#gkDel").style.display=k?"":"none";}
 $("#gkSave").onclick=async()=>{const v=$("#gkIn").value.trim();if(!v){shake($("#gkIn"));return;}
-  $("#gkState").textContent="Checking key…";try{const m=await pickModel(v,true);localStorage.setItem(GKEY,v);localStorage.setItem(GMODEL,m);renderKey();toast("✓ Key saved — scanning is on");}
+  $("#gkState").textContent="Checking key…";try{await pickModels(v,true);localStorage.setItem(GKEY,v);renderKey();toast("✓ Key saved — scanning is on");}
   catch(e){try{localStorage.removeItem(GMODEL);}catch(x){}$("#gkState").textContent=e&&e.code==="bad_key"?"That key was rejected — copy it again from Google AI Studio.":"Couldn't check the key — are you online?";}};
-$("#gkDel").onclick=async()=>{if(await confirmD("Remove Gemini key?","Label and meal-photo scanning will stop. Barcodes keep working.","Remove")){try{localStorage.removeItem(GKEY);localStorage.removeItem(GMODEL);}catch(e){}renderKey();}};
+$("#gkDel").onclick=async()=>{if(await confirmD("Remove Gemini key?","Label and meal-photo scanning will stop. Barcodes keep working.","Remove")){try{localStorage.removeItem(GKEY);localStorage.removeItem(GMODEL);localStorage.removeItem("gemini_nothink_abdullah");}catch(e){}renderKey();}};
 
 /* ================= BOOT ================= */
 onShow.stats=renderProgress;onShow.work=renderWork;onShow.more=()=>{renderMore();renderKey();};
