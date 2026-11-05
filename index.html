@@ -1001,11 +1001,15 @@ const SCAN_MODES=[{k:"barcode",l:"Barcode",d:"Snap the barcode. It's looked up i
   {k:"meal",l:"Meal photo",d:"Snap the plate you're about to eat. Gemini estimates each part's grams and macros."}];
 const GKEY="gemini_key_abdullah",GMODEL="gemini_model_abdullah";
 const getKey=()=>{try{return localStorage.getItem(GKEY)||"";}catch(e){return "";}};
+async function gfetch(url,key,opts={}){
+  const sep=url.includes("?")?"&":"?";let r=await fetch(url+sep+"key="+encodeURIComponent(key),opts);
+  if(r.status===401){const h=Object.assign({},opts.headers||{},{"x-goog-api-key":key});r=await fetch(url,Object.assign({},opts,{headers:h}));}
+  return r;}
 async function pickModel(key,force){
   if(!force){try{const m=localStorage.getItem(GMODEL);if(m)return m;}catch(e){}}
   let best="gemini-2.5-flash";
-  try{const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key="+encodeURIComponent(key));
-    if(r.status===400||r.status===403)throw {code:"bad_key"};
+  try{const r=await gfetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",key);
+    if(r.status===400||r.status===401||r.status===403)throw {code:"bad_key"};
     const j=await r.json();const list=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>String(m.name).replace(/^models\//,""))
       .filter(n=>/^gemini-[\d.]+-flash/.test(n)&&!/(lite|image|tts|live|audio|embed|thinking|exp)/.test(n));
     const ver=n=>parseFloat((/gemini-([\d.]+)/.exec(n)||[0,0])[1]);
@@ -1021,12 +1025,12 @@ function parseJSON(t){t=String(t||"").trim().replace(/^```(?:json)?/i,"").replac
 async function geminiJSON(prompt,file,signal,retried){
   const key=getKey();if(!key)throw {code:"no_key"};
   const model=await pickModel(key,retried);const img=await shrink(file);const data=await b64(img);
-  let r;try{r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",signal,headers:{"Content-Type":"application/json"},
+  let r;try{r=await gfetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,key,{method:"POST",signal,headers:{"Content-Type":"application/json"},
     body:JSON.stringify({contents:[{parts:[{text:prompt},{inline_data:{mime_type:img.type||"image/jpeg",data}}]}],generationConfig:{temperature:.2,responseMimeType:"application/json"}})});}
   catch(e){if(signal.aborted)throw {code:"cancelled"};throw {code:"network"};}
   if(r.status===404&&!retried){try{localStorage.removeItem(GMODEL);}catch(e){}return geminiJSON(prompt,file,signal,true);}
   if(r.status===429)throw {code:"rate_limited"};
-  if(r.status===400||r.status===403){let m="";try{m=(await r.json()).error.message||"";}catch(e){}throw {code:/key/i.test(m)?"bad_key":"upstream_error",message:m};}
+  if(r.status===400||r.status===401||r.status===403){let m="";try{m=(await r.json()).error.message||"";}catch(e){}throw {code:/key/i.test(m)?"bad_key":"upstream_error",message:m};}
   if(!r.ok)throw {code:"upstream_error"};
   const j=await r.json();const c=j.candidates&&j.candidates[0];
   if(!c||!c.content){throw {code:"refused"};}
